@@ -18,8 +18,14 @@ from pydantic import ValidationError
 
 from netdiagram.ir.models import Diagram, GroupType, NodeType
 from netdiagram.ir.schema import diagram_json_schema
+from netdiagram.layout import layout_diagram
+from netdiagram.renderers.drawio import DrawioRenderer
 
 app = FastMCP("netdiagram")
+
+_RENDERERS = {
+    "drawio": DrawioRenderer(),
+}
 
 
 @app.tool()
@@ -69,6 +75,45 @@ def validate_diagram(ir: dict) -> dict:
             ],
         }
     return {"valid": True, "errors": []}
+
+
+@app.tool()
+def render_diagram(ir: dict, format: str = "drawio") -> dict:  # noqa: A002
+    """Render an IR to a diagram file in the requested format.
+
+    Returns {"format": ..., "filename": ..., "content": "..."} on success.
+    On error, returns {"error": "message"}. Phase 1 supports only 'drawio'.
+    """
+    # Validate first so we fail fast with a clear message.
+    try:
+        diagram = Diagram.model_validate(ir)
+    except ValidationError as e:
+        return {
+            "error": "validation failed",
+            "errors": [
+                {
+                    "loc": ".".join(str(x) for x in err["loc"]) or "<root>",
+                    "msg": err["msg"],
+                }
+                for err in e.errors()
+            ],
+        }
+
+    renderer = _RENDERERS.get(format)
+    if renderer is None:
+        return {"error": f"unsupported format '{format}'. Available: {list(_RENDERERS)}"}
+
+    try:
+        laid = layout_diagram(diagram)
+        content = renderer.render(laid)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"render failed: {exc}"}
+
+    return {
+        "format": format,
+        "filename": f"{diagram.metadata.title.replace(' ', '-').lower()}{renderer.extension}",
+        "content": content,
+    }
 
 
 def main() -> None:

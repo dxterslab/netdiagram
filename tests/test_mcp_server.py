@@ -4,7 +4,7 @@ Tools are plain Python functions after FastMCP decoration, so tests call
 them directly rather than going through the MCP protocol.
 """
 
-from netdiagram.mcp_server import get_schema, list_types, validate_diagram
+from netdiagram.mcp_server import get_schema, list_types, render_diagram, validate_diagram
 
 
 def test_get_schema_returns_diagram_schema():
@@ -68,3 +68,28 @@ def test_validate_diagram_rejects_unknown_node_type():
     ir["nodes"][0]["type"] = "toaster"
     result = validate_diagram(ir)
     assert result["valid"] is False
+
+
+def test_render_diagram_returns_drawio_xml():
+    ir = _minimal_valid_ir()
+    ir["nodes"].append({"id": "r2", "label": "r2", "type": "router"})
+    ir["links"] = [{"source": {"node": "r1"}, "target": {"node": "r2"}}]
+
+    result = render_diagram(ir, "drawio")
+    assert result["format"] == "drawio"
+    assert result["filename"].endswith(".drawio")
+    assert "<mxfile" in result["content"]
+
+
+def test_render_diagram_rejects_unknown_format():
+    result = render_diagram(_minimal_valid_ir(), "mermaid")
+    assert result["error"] is not None
+    assert "unsupported format" in result["error"].lower()
+
+
+def test_render_diagram_rejects_invalid_ir():
+    ir = _minimal_valid_ir()
+    ir["nodes"][0]["type"] = "not-a-real-type"
+    result = render_diagram(ir, "drawio")
+    assert result["error"] is not None
+    assert "validation" in result["error"].lower() or "invalid" in result["error"].lower()
