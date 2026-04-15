@@ -1,0 +1,39 @@
+version: "1.0"
+metadata:
+  title: "Branch Office Topology"
+  type: physical
+groups:
+  - id: server-vlan
+    label: "VLAN 100 - Servers"
+    type: subnet
+nodes:
+  - id: fw1
+    label: fw1
+    type: firewall
+    interfaces:
+      - id: eth0
+        state: up
+      - id: eth1
+        state: up
+  - id: core-sw1
+    label: core-sw1
+    type: switch
+    group: server-vlan
+    interfaces:
+      - id: gi0/1
+        state: up
+      - id: gi0/2
+        state: up
+  - id: srv1
+    label: srv1
+    type: server
+    group: server-vlan
+    interfaces:
+      - id: eth0
+        state: up
+links:
+  - source: { node: fw1, interface: eth1 }
+    target: { node: core-sw1, interface: gi0/1 }
+    label: "Trunk"
+  - source: { node: core-sw1, interface: gi0/2 }
+    target: { node: srv1, interface: eth0 }

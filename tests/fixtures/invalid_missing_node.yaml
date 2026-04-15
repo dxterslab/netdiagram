@@ -1,0 +1,11 @@
+version: "1.0"
+metadata:
+  title: "Invalid - link to missing node"
+  type: physical
+nodes:
+  - id: a
+    label: a
+    type: router
+links:
+  - source: { node: a }
+    target: { node: ghost }
