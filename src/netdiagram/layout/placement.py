@@ -26,7 +26,7 @@ def compute_initial_positions(
 ) -> dict[str, tuple[float, float]]:
     """Return a mapping of node id -> (x, y) coordinates."""
     if shape is TopologyShape.TRIVIAL:
-        return {n: (0.0, 0.0) for n in g.nodes()}
+        return dict.fromkeys(g.nodes(), (0.0, 0.0))
 
     if shape is TopologyShape.RING:
         return _ring_positions(g)
