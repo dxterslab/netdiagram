@@ -36,12 +36,16 @@ def layout_diagram(diagram: Diagram) -> LayoutedDiagram:
     for node in diagram.nodes:
         x, y = raw_positions.get(node.id, (0.0, 0.0))
         w, h = compute_node_size(node)
-        positioned.append(PositionedNode(node=node, x=x - w / 2, y=y - h / 2, width=w, height=h))
+        positioned.append(
+            PositionedNode(node=node, x=x - w / 2, y=y - h / 2, width=w, height=h)
+        )
 
     positioned = resolve_overlaps(positioned, padding=_NODE_PADDING)
-    positioned = _normalize(positioned, margin=_MARGIN)
 
     groups = _compute_group_bounds(diagram, positioned)
+
+    # Normalize both nodes and groups together so nothing starts above/left of margin.
+    _normalize_all(positioned, groups, margin=_MARGIN)
 
     canvas_w, canvas_h = _canvas_bounds_with_groups(positioned, groups, margin=_MARGIN)
 
@@ -65,17 +69,24 @@ def _build_graph(diagram: Diagram) -> nx.Graph:
     return g
 
 
-def _normalize(nodes: list[PositionedNode], margin: float) -> list[PositionedNode]:
-    if not nodes:
-        return nodes
-    min_x = min(pn.x for pn in nodes)
-    min_y = min(pn.y for pn in nodes)
-    dx = margin - min_x
-    dy = margin - min_y
+def _normalize_all(
+    nodes: list[PositionedNode], groups: list[PositionedGroup], margin: float
+) -> None:
+    """Shift nodes and groups together so the combined minimum x/y is at `margin`."""
+    if not nodes and not groups:
+        return
+    xs = [pn.x for pn in nodes] + [pg.x for pg in groups]
+    ys = [pn.y for pn in nodes] + [pg.y for pg in groups]
+    if not xs:
+        return
+    dx = margin - min(xs)
+    dy = margin - min(ys)
     for pn in nodes:
         pn.x += dx
         pn.y += dy
-    return nodes
+    for pg in groups:
+        pg.x += dx
+        pg.y += dy
 
 
 def _compute_group_bounds(

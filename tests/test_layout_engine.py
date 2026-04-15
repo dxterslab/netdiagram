@@ -80,6 +80,9 @@ def test_layout_includes_positioned_groups():
     laid = layout_diagram(d)
     assert len(laid.groups) == 1
     pg = laid.groups[0]
+    # Group must not extend above or left of canvas
+    assert pg.x >= 0
+    assert pg.y >= 0
     # Group must enclose all its child nodes
     children = [pn for pn in laid.nodes if pn.node.group == "vlan100"]
     for pn in children:
