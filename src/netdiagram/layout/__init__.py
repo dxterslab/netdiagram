@@ -1,3 +1,4 @@
+from netdiagram.layout.engine import layout_diagram
 from netdiagram.layout.types import (
     LayoutedDiagram,
     Point,
@@ -12,4 +13,5 @@ __all__ = [
     "PositionedGroup",
     "PositionedNode",
     "RoutedEdge",
+    "layout_diagram",
 ]
