@@ -15,10 +15,12 @@ dependencies = [
   "networkx>=3.2",
   "pygraphviz>=1.12",
   "lxml>=5.0",
+  "mcp>=1.6,<2.0",
 ]
 
 [project.scripts]
 netdiagram = "netdiagram.cli:app"
+netdiagram-mcp = "netdiagram.mcp_server:main"
 
 [dependency-groups]
 dev = [
