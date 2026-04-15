@@ -8,6 +8,7 @@ Phase 1 MVP complete (as of 2026-04-15). The repo has:
 - Full IR layer (Pydantic models, loader, JSON Schema export)
 - Layout engine (topology classification → graphviz placement → overlap resolution → canvas normalization → edge routing → group bounds)
 - Draw.io renderer (nodes, edges with interface labels, groups as containers)
+- D2 renderer (nodes with type-based shapes, edges with arrowhead port labels, nested containers)
 - Typer CLI (`validate`, `render`, `schema`, `list-types`)
 - 57 tests, all passing
 
