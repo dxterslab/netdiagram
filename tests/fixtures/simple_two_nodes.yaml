@@ -1,0 +1,21 @@
+version: "1.0"
+metadata:
+  title: "Simple two-node diagram"
+  type: physical
+nodes:
+  - id: r1
+    label: r1
+    type: router
+    interfaces:
+      - id: gi0/1
+        state: up
+  - id: r2
+    label: r2
+    type: router
+    interfaces:
+      - id: gi0/1
+        state: up
+links:
+  - source: { node: r1, interface: gi0/1 }
+    target: { node: r2, interface: gi0/1 }
+    label: "uplink"
