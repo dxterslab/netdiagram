@@ -13,7 +13,19 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from netdiagram.ir.schema import diagram_json_schema
+
 app = FastMCP("netdiagram")
+
+
+@app.tool()
+def get_schema() -> dict:
+    """Return the JSON Schema (draft 2020-12) describing the netdiagram IR.
+
+    The LLM should consult this schema when constructing IR objects to pass
+    to validate_diagram or render_diagram.
+    """
+    return diagram_json_schema()
 
 
 def main() -> None:
