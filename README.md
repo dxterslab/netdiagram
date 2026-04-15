@@ -1,6 +1,6 @@
 # netdiagram
 
-LLM-friendly network diagram tool. Describe network topologies in YAML/JSON, render to Draw.io, D2, or Mermaid.
+LLM-friendly network diagram tool. Describe network topologies in YAML/JSON, render to Draw.io today (D2 and Mermaid planned).
 
 ## Install
 
