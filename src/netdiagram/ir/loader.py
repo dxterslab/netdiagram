@@ -19,10 +19,12 @@ class LoaderError(Exception):
 def load_diagram(path: str | Path) -> Diagram:
     """Load a diagram IR from a YAML or JSON file. Raises LoaderError on any failure."""
     p = Path(path)
-    if not p.exists():
-        raise LoaderError(f"file not found: {p}")
-
-    raw = p.read_text(encoding="utf-8")
+    try:
+        raw = p.read_text(encoding="utf-8")
+    except FileNotFoundError as e:
+        raise LoaderError(f"file not found: {p}") from e
+    except OSError as e:
+        raise LoaderError(f"cannot read {p}: {e}") from e
 
     try:
         data = _parse(raw, p.suffix.lower())
