@@ -11,8 +11,11 @@ registers five tools:
 
 from __future__ import annotations
 
+import typing as _t
+
 from mcp.server.fastmcp import FastMCP
 
+from netdiagram.ir.models import GroupType, NodeType
 from netdiagram.ir.schema import diagram_json_schema
 
 app = FastMCP("netdiagram")
@@ -26,6 +29,19 @@ def get_schema() -> dict:
     to validate_diagram or render_diagram.
     """
     return diagram_json_schema()
+
+
+@app.tool()
+def list_types() -> dict:
+    """Return the supported node and group type literals.
+
+    Use this before constructing IR — each node and group must have a type
+    drawn from these lists. Unknown types render as a neutral shape.
+    """
+    return {
+        "node_types": list(_t.get_args(NodeType)),
+        "group_types": list(_t.get_args(GroupType)),
+    }
 
 
 def main() -> None:
