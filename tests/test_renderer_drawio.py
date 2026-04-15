@@ -128,3 +128,26 @@ def test_edge_style_reflects_link_style():
     root = _parse(_render(d))
     edge = next(c for c in root.findall(".//mxCell") if c.get("edge") == "1")
     assert "dashed=1" in (edge.get("style") or "")
+
+
+from netdiagram.ir.models import Group
+
+
+def test_groups_rendered_as_container_cells():
+    d = Diagram(
+        metadata=Metadata(title="T", type="logical"),
+        groups=[Group(id="vlan100", label="VLAN 100", type="vlan")],
+        nodes=[
+            Node(id="sw1", label="sw1", type="switch", group="vlan100"),
+            Node(id="sw2", label="sw2", type="switch", group="vlan100"),
+        ],
+    )
+    root = _parse(_render(d))
+    group_cells = [c for c in root.findall(".//mxCell") if c.get("id") == "group-vlan100"]
+    assert len(group_cells) == 1
+    gcell = group_cells[0]
+    assert gcell.get("value") == "VLAN 100"
+    # Nodes whose IR group is vlan100 must have parent == group-vlan100
+    node_cells = {c.get("id"): c for c in root.findall(".//mxCell") if c.get("vertex") == "1"}
+    assert node_cells["node-sw1"].get("parent") == "group-vlan100"
+    assert node_cells["node-sw2"].get("parent") == "group-vlan100"
