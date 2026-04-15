@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 import networkx as nx
 
 
-class TopologyShape(str, Enum):
+class TopologyShape(StrEnum):
     TRIVIAL = "trivial"        # 0 or 1 node
     TREE = "tree"              # acyclic, connected
     STAR = "star"              # one hub connected to all leaves

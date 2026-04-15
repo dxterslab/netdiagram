@@ -1,4 +1,4 @@
-from netdiagram.ir.models import Diagram, Interface, Link, LinkEndpoint, Metadata, Node
+from netdiagram.ir.models import Diagram, Group, Interface, Link, LinkEndpoint, Metadata, Node
 from netdiagram.layout.engine import layout_diagram
 
 
@@ -63,9 +63,6 @@ def test_single_node_diagram_lays_out():
     laid = layout_diagram(d)
     assert len(laid.nodes) == 1
     assert laid.canvas_width > 0 and laid.canvas_height > 0
-
-
-from netdiagram.ir.models import Group
 
 
 def test_layout_includes_positioned_groups():
