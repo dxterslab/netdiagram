@@ -156,19 +156,33 @@ class DrawioRenderer:
 
         if re.link.source.interface:
             self._append_endpoint_label(
-                root, parent_id=edge_id, label=re.link.source.interface, position=-0.7
+                root,
+                parent_id=edge_id,
+                label=re.link.source.interface,
+                position=-0.7,
+                cell_id=f"{edge_id}-src-label",
             )
         if re.link.target.interface:
             self._append_endpoint_label(
-                root, parent_id=edge_id, label=re.link.target.interface, position=0.7
+                root,
+                parent_id=edge_id,
+                label=re.link.target.interface,
+                position=0.7,
+                cell_id=f"{edge_id}-tgt-label",
             )
 
     def _append_endpoint_label(
-        self, root: etree._Element, parent_id: str, label: str, position: float
+        self,
+        root: etree._Element,
+        parent_id: str,
+        label: str,
+        position: float,
+        cell_id: str,
     ) -> None:
         cell = etree.SubElement(
             root,
             "mxCell",
+            id=cell_id,
             value=label,
             style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];",
             vertex="1",
