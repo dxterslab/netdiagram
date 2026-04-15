@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "netdiagram"
+version = "0.1.0"
+description = "LLM-friendly network diagram tool (IR -> Draw.io, D2, Mermaid)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.6",
+  "typer>=0.12",
+  "PyYAML>=6.0",
+  "networkx>=3.2",
+  "pygraphviz>=1.12",
+  "lxml>=5.0",
+]
+
+[project.scripts]
+netdiagram = "netdiagram.cli:app"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/netdiagram"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM"]
