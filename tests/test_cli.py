@@ -44,3 +44,23 @@ def test_list_types_prints_node_and_group_types():
     assert result.exit_code == 0
     assert "router" in result.stdout
     assert "subnet" in result.stdout
+
+
+def test_render_d2_to_file(fixtures_dir, tmp_path):
+    out = tmp_path / "out.d2"
+    result = runner.invoke(
+        app,
+        [
+            "render",
+            str(fixtures_dir / "simple_two_nodes.yaml"),
+            "--format",
+            "d2",
+            "--output",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.stdout
+    assert out.exists()
+    content = out.read_text()
+    assert '"r1": {' in content
+    assert '"r2": {' in content

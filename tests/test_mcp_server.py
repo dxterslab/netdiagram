@@ -131,3 +131,15 @@ def test_preview_layout_rejects_invalid_ir():
     ir["nodes"][0]["type"] = "not-real"
     result = preview_layout(ir)
     assert "error" in result
+
+
+def test_render_diagram_d2_format():
+    ir = _minimal_valid_ir()
+    ir["nodes"].append({"id": "r2", "label": "r2", "type": "router"})
+    ir["links"] = [{"source": {"node": "r1"}, "target": {"node": "r2"}}]
+
+    result = render_diagram(ir, "d2")
+    assert result["format"] == "d2"
+    assert result["filename"].endswith(".d2")
+    assert '"r1": {' in result["content"]
+    assert '"r2": {' in result["content"]

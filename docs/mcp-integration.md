@@ -44,7 +44,7 @@ The server speaks line-delimited JSON-RPC on stdin/stdout per the MCP spec. Any 
 1. User pastes raw LLDP/CDP/interface output into chat.
 2. LLM calls `get_schema` once to learn the IR structure.
 3. LLM drafts an IR dict, calls `validate_diagram`. On errors, the `loc`+`msg` pairs tell it exactly what to fix.
-4. LLM calls `render_diagram(ir, "drawio")`. The `content` field holds the Draw.io XML — the LLM returns it to the user for download or writes it to a path.
+4. LLM calls `render_diagram(ir, "drawio")` or `render_diagram(ir, "d2")`. The `content` field holds the target-format text (Draw.io mxGraph XML or D2 source). The LLM returns it to the user for download or writes it to a path.
 5. If layout spacing needs inspection before committing, `preview_layout` returns positioned nodes and routed edges without rendering.
 
 ## Debugging

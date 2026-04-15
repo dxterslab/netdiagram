@@ -12,12 +12,14 @@ from netdiagram.ir.loader import LoaderError, load_diagram
 from netdiagram.ir.models import GroupType, NodeType
 from netdiagram.ir.schema import diagram_json_schema
 from netdiagram.layout import layout_diagram
+from netdiagram.renderers.d2 import D2Renderer
 from netdiagram.renderers.drawio import DrawioRenderer
 
 app = typer.Typer(help="LLM-friendly network diagram tool.")
 
 _RENDERERS = {
     "drawio": DrawioRenderer(),
+    "d2": D2Renderer(),
 }
 
 
