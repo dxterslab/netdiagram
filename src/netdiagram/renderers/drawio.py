@@ -30,6 +30,16 @@ _EDGE_STYLE_BY_LINK_STYLE: dict[LinkStyle, str] = {
     "dotted": "endArrow=none;html=1;rounded=0;dashed=1;dashPattern=1 4;",
 }
 
+_GROUP_STYLE_BY_TYPE: dict[str, str] = {
+    "subnet": "rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;verticalAlign=top;fontSize=12;",
+    "vlan": "rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F9A825;verticalAlign=top;fontSize=12;",
+    "vpc": "rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;verticalAlign=top;fontSize=12;",
+    "availability_zone": "rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;verticalAlign=top;fontSize=12;dashed=1;",
+    "region": "rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#4527A0;verticalAlign=top;fontSize=12;",
+    "zone": "rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;verticalAlign=top;fontSize=12;",
+    "dmz": "rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;verticalAlign=top;fontSize=12;",
+}
+
 
 class DrawioRenderer:
     format = "drawio"
@@ -63,8 +73,15 @@ class DrawioRenderer:
         etree.SubElement(root, "mxCell", id="0")
         etree.SubElement(root, "mxCell", id="1", parent="0")
 
+        # Emit groups first (ordered from outermost to innermost so children can reference parents).
+        group_ids: set[str] = set()
+        for pg in _order_groups(diagram):
+            self._append_group(root, pg)
+            group_ids.add(pg.group.id)
+
         for pn in diagram.nodes:
-            self._append_node(root, pn)
+            parent = f"group-{pn.node.group}" if pn.node.group in group_ids else "1"
+            self._append_node(root, pn, parent=parent)
 
         for i, re in enumerate(diagram.edges):
             self._append_edge(root, re, edge_index=i)
@@ -72,7 +89,29 @@ class DrawioRenderer:
         etree.indent(mxfile, space="  ")
         return etree.tostring(mxfile, xml_declaration=True, encoding="utf-8").decode("utf-8")
 
-    def _append_node(self, root: etree._Element, pn: PositionedNode) -> None:
+    def _append_group(self, root: etree._Element, pg) -> None:
+        style = _GROUP_STYLE_BY_TYPE.get(pg.group.type, _GROUP_STYLE_BY_TYPE["zone"])
+        parent = f"group-{pg.group.parent}" if pg.group.parent else "1"
+        cell = etree.SubElement(
+            root,
+            "mxCell",
+            id=f"group-{pg.group.id}",
+            value=pg.group.label,
+            style=style,
+            vertex="1",
+            parent=parent,
+        )
+        geom = etree.SubElement(
+            cell,
+            "mxGeometry",
+            x=str(pg.x),
+            y=str(pg.y),
+            width=str(pg.width),
+            height=str(pg.height),
+        )
+        geom.set("as", "geometry")
+
+    def _append_node(self, root: etree._Element, pn: PositionedNode, parent: str = "1") -> None:
         style = _STYLE_BY_TYPE.get(pn.node.type, _STYLE_BY_TYPE["generic"])
         cell = etree.SubElement(
             root,
@@ -81,15 +120,20 @@ class DrawioRenderer:
             value=pn.node.label,
             style=style,
             vertex="1",
-            parent="1",
+            parent=parent,
         )
+        # When nested inside a group, geometry is relative to the group origin.
+        if parent.startswith("group-"):
+            pg = next(g for g in root.findall(".//mxCell") if g.get("id") == parent)
+            gx = float(pg.find("mxGeometry").get("x"))
+            gy = float(pg.find("mxGeometry").get("y"))
+            rel_x = pn.x - gx
+            rel_y = pn.y - gy
+        else:
+            rel_x = pn.x
+            rel_y = pn.y
         geom = etree.SubElement(
-            cell,
-            "mxGeometry",
-            x=str(pn.x),
-            y=str(pn.y),
-            width=str(pn.width),
-            height=str(pn.height),
+            cell, "mxGeometry", x=str(rel_x), y=str(rel_y), width=str(pn.width), height=str(pn.height)
         )
         geom.set("as", "geometry")
 
@@ -110,7 +154,6 @@ class DrawioRenderer:
         geom = etree.SubElement(edge_cell, "mxGeometry", relative="1")
         geom.set("as", "geometry")
 
-        # Interface labels as child cells anchored to the edge.
         if re.link.source.interface:
             self._append_endpoint_label(
                 root, parent_id=edge_id, label=re.link.source.interface, position=-0.7
@@ -123,8 +166,6 @@ class DrawioRenderer:
     def _append_endpoint_label(
         self, root: etree._Element, parent_id: str, label: str, position: float
     ) -> None:
-        # In Draw.io, edge labels are child mxCells with a geometry x in [-1, 1]
-        # representing position along the edge (-1 = source, 1 = target).
         cell = etree.SubElement(
             root,
             "mxCell",
@@ -137,3 +178,23 @@ class DrawioRenderer:
         geom = etree.SubElement(cell, "mxGeometry", x=str(position), y="0", relative="1")
         etree.SubElement(geom, "mxPoint").set("as", "offset")
         geom.set("as", "geometry")
+
+
+def _order_groups(diagram: LayoutedDiagram):
+    """Yield PositionedGroup objects ordered outermost-first (parents before children)."""
+    by_id = {pg.group.id: pg for pg in diagram.groups}
+    ordered: list = []
+    visited: set[str] = set()
+
+    def visit(gid: str) -> None:
+        if gid in visited:
+            return
+        pg = by_id[gid]
+        if pg.group.parent:
+            visit(pg.group.parent)
+        visited.add(gid)
+        ordered.append(pg)
+
+    for gid in by_id:
+        visit(gid)
+    return ordered

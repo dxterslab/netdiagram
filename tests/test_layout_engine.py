@@ -63,3 +63,27 @@ def test_single_node_diagram_lays_out():
     laid = layout_diagram(d)
     assert len(laid.nodes) == 1
     assert laid.canvas_width > 0 and laid.canvas_height > 0
+
+
+from netdiagram.ir.models import Group
+
+
+def test_layout_includes_positioned_groups():
+    d = Diagram(
+        metadata=Metadata(title="T", type="logical"),
+        groups=[Group(id="vlan100", label="VLAN 100", type="vlan")],
+        nodes=[
+            Node(id="sw1", label="sw1", type="switch", group="vlan100"),
+            Node(id="sw2", label="sw2", type="switch", group="vlan100"),
+        ],
+    )
+    laid = layout_diagram(d)
+    assert len(laid.groups) == 1
+    pg = laid.groups[0]
+    # Group must enclose all its child nodes
+    children = [pn for pn in laid.nodes if pn.node.group == "vlan100"]
+    for pn in children:
+        assert pn.x >= pg.x
+        assert pn.y >= pg.y
+        assert pn.x + pn.width <= pg.x + pg.width
+        assert pn.y + pn.height <= pg.y + pg.height
