@@ -4,7 +4,13 @@ Tools are plain Python functions after FastMCP decoration, so tests call
 them directly rather than going through the MCP protocol.
 """
 
-from netdiagram.mcp_server import get_schema, list_types, render_diagram, validate_diagram
+from netdiagram.mcp_server import (
+    get_schema,
+    list_types,
+    preview_layout,
+    render_diagram,
+    validate_diagram,
+)
 
 
 def test_get_schema_returns_diagram_schema():
@@ -93,3 +99,35 @@ def test_render_diagram_rejects_invalid_ir():
     result = render_diagram(ir, "drawio")
     assert result["error"] is not None
     assert "validation" in result["error"].lower() or "invalid" in result["error"].lower()
+
+
+def test_preview_layout_returns_positioned_nodes_and_edges():
+    ir = _minimal_valid_ir()
+    ir["nodes"].append({"id": "r2", "label": "r2", "type": "router"})
+    ir["links"] = [{"source": {"node": "r1"}, "target": {"node": "r2"}}]
+
+    result = preview_layout(ir)
+    assert "nodes" in result
+    assert "edges" in result
+    assert "canvas_width" in result
+    assert "canvas_height" in result
+
+    ids = {n["id"] for n in result["nodes"]}
+    assert ids == {"r1", "r2"}
+    for n in result["nodes"]:
+        assert set(n.keys()) >= {"id", "x", "y", "width", "height"}
+        assert n["width"] > 0 and n["height"] > 0
+
+    assert len(result["edges"]) == 1
+    edge = result["edges"][0]
+    assert edge["source"] == "r1" and edge["target"] == "r2"
+    assert len(edge["path"]) >= 2
+    for point in edge["path"]:
+        assert "x" in point and "y" in point
+
+
+def test_preview_layout_rejects_invalid_ir():
+    ir = _minimal_valid_ir()
+    ir["nodes"][0]["type"] = "not-real"
+    result = preview_layout(ir)
+    assert "error" in result
