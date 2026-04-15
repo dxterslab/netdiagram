@@ -1,7 +1,7 @@
 """D2 renderer tests. D2 is text-based, so tests assert substring presence rather
 than structure-parsing like the drawio tests do."""
 
-from netdiagram.ir.models import Diagram, Interface, Link, LinkEndpoint, Metadata, Node
+from netdiagram.ir.models import Diagram, Group, Interface, Link, LinkEndpoint, Metadata, Node
 from netdiagram.layout import layout_diagram
 from netdiagram.renderers.d2 import D2Renderer
 
@@ -174,3 +174,74 @@ def test_interface_labels_become_arrowhead_labels():
     # D2 uses source-arrowhead.label and target-arrowhead.label for port annotations
     assert 'source-arrowhead.label: "gi0/1"' in out
     assert 'target-arrowhead.label: "gi0/2"' in out
+
+
+def test_group_containing_nodes_becomes_nested_container():
+    d = Diagram(
+        metadata=Metadata(title="T", type="logical"),
+        groups=[Group(id="vlan100", label="VLAN 100", type="vlan")],
+        nodes=[
+            Node(id="sw1", label="sw1", type="switch", group="vlan100"),
+            Node(id="sw2", label="sw2", type="switch", group="vlan100"),
+        ],
+    )
+    out = _render(d)
+    # Group declared as container
+    assert '"vlan100": {' in out
+    # Group has its label
+    assert 'label: "VLAN 100"' in out
+    # Member nodes appear nested inside (indented)
+    assert '  "sw1": {' in out
+    assert '  "sw2": {' in out
+
+
+def test_nested_groups_produce_nested_containers():
+    d = Diagram(
+        metadata=Metadata(title="T", type="logical"),
+        groups=[
+            Group(id="vpc1", label="VPC 1", type="vpc"),
+            Group(id="subnet1", label="Subnet", type="subnet", parent="vpc1"),
+        ],
+        nodes=[Node(id="srv", label="srv", type="server", group="subnet1")],
+    )
+    out = _render(d)
+    # Outer VPC, inner subnet, server inside the subnet
+    assert '"vpc1": {' in out
+    assert '  "subnet1": {' in out
+    assert '    "srv": {' in out
+
+
+def test_cross_group_edge_uses_dotted_path():
+    d = Diagram(
+        metadata=Metadata(title="T", type="logical"),
+        groups=[Group(id="vlan100", label="VLAN 100", type="vlan")],
+        nodes=[
+            Node(id="fw1", label="fw1", type="firewall"),
+            Node(id="sw1", label="sw1", type="switch", group="vlan100"),
+        ],
+        links=[
+            Link(source=LinkEndpoint(node="fw1"), target=LinkEndpoint(node="sw1"))
+        ],
+    )
+    out = _render(d)
+    # Edge target references the grouped node via container-dot-node path
+    assert '"fw1" -> "vlan100"."sw1"' in out
+
+
+def test_ungrouped_nodes_appear_at_top_level():
+    d = Diagram(
+        metadata=Metadata(title="T", type="logical"),
+        groups=[Group(id="vlan100", label="VLAN 100", type="vlan")],
+        nodes=[
+            Node(id="free", label="free", type="router"),
+            Node(id="grouped", label="grouped", type="switch", group="vlan100"),
+        ],
+    )
+    out = _render(d)
+    # Top-level "free" block is not indented
+    lines = out.splitlines()
+    free_line = next(ln for ln in lines if '"free": {' in ln)
+    assert free_line.startswith('"free"')  # no leading indent
+    # Grouped node is nested (indented)
+    grouped_line = next(ln for ln in lines if '"grouped": {' in ln)
+    assert grouped_line.startswith("  ")

@@ -7,13 +7,9 @@ positions are ignored — only the underlying IR is used.
 
 from __future__ import annotations
 
-from netdiagram.ir.models import NodeType
+from netdiagram.ir.models import Diagram, Group, Link, Node, NodeType
 from netdiagram.layout.types import LayoutedDiagram
 
-# Map IR node types to D2 built-in shape names.
-# D2 ships these shapes out of the box: rectangle, square, page, parallelogram,
-# document, cylinder, queue, package, step, callout, stored_data, person,
-# diamond, oval, circle, hexagon, cloud, text, code, class, image.
 _SHAPE_BY_TYPE: dict[NodeType, str] = {
     "router": "hexagon",
     "switch": "rectangle",
@@ -23,7 +19,6 @@ _SHAPE_BY_TYPE: dict[NodeType, str] = {
     "access_point": "oval",
     "endpoint": "rectangle",
     "generic": "rectangle",
-    # Cloud constructs
     "vpc": "cloud",
     "cloud_lb": "hexagon",
     "cloud_db": "cylinder",
@@ -45,17 +40,58 @@ class D2Renderer:
             lines.append(f"# {ir.metadata.title}")
             lines.append("")
 
-        for node in ir.nodes:
+        # Index data for fast lookup while walking the hierarchy.
+        children_of: dict[str | None, list[Group]] = {}
+        for g in ir.groups:
+            children_of.setdefault(g.parent, []).append(g)
+        nodes_in_group: dict[str | None, list[Node]] = {}
+        for n in ir.nodes:
+            nodes_in_group.setdefault(n.group, []).append(n)
+
+        # Render top-level groups (those without a parent) recursively.
+        for grp in children_of.get(None, []):
+            lines.extend(
+                self._render_group(grp, children_of, nodes_in_group, indent=0)
+            )
+            lines.append("")
+
+        # Render ungrouped nodes at top level.
+        for node in nodes_in_group.get(None, []):
             lines.extend(self._render_node(node, indent=0))
             lines.append("")
 
+        # Build edges (with container-aware paths).
+        path_of_node = _node_paths(ir)
         for link in ir.links:
-            lines.extend(self._render_edge(link))
+            lines.extend(self._render_edge(link, path_of_node))
             lines.append("")
 
         return "\n".join(lines).rstrip() + "\n"
 
-    def _render_node(self, node, indent: int) -> list[str]:
+    def _render_group(
+        self,
+        group: Group,
+        children_of: dict[str | None, list[Group]],
+        nodes_in_group: dict[str | None, list[Node]],
+        indent: int,
+    ) -> list[str]:
+        pad = "  " * indent
+        inner_pad = "  " * (indent + 1)
+        lines: list[str] = [
+            f'{pad}"{group.id}": {{',
+            f'{inner_pad}label: "{group.label}"',
+        ]
+        # Nested groups first, then member nodes.
+        for child_group in children_of.get(group.id, []):
+            lines.extend(
+                self._render_group(child_group, children_of, nodes_in_group, indent + 1)
+            )
+        for node in nodes_in_group.get(group.id, []):
+            lines.extend(self._render_node(node, indent + 1))
+        lines.append(f"{pad}}}")
+        return lines
+
+    def _render_node(self, node: Node, indent: int) -> list[str]:
         pad = "  " * indent
         shape = _SHAPE_BY_TYPE.get(node.type, _SHAPE_BY_TYPE["generic"])
         return [
@@ -65,22 +101,18 @@ class D2Renderer:
             f'{pad}}}',
         ]
 
-    def _render_edge(self, link) -> list[str]:
-        # Base edge line: "a" -> "b" optionally with label.
-        src_id = f'"{link.source.node}"'
-        tgt_id = f'"{link.target.node}"'
-        head = f"{src_id} -> {tgt_id}"
+    def _render_edge(self, link: Link, path_of_node: dict[str, str]) -> list[str]:
+        src = path_of_node[link.source.node]
+        tgt = path_of_node[link.target.node]
+        head = f"{src} -> {tgt}"
         if link.label:
             head = f'{head}: "{link.label}"'
 
-        # Collect edge-body attributes (style, arrowhead labels).
         body: list[str] = []
-
         if link.style == "dashed":
             body.append("  style.stroke-dash: 5")
         elif link.style == "dotted":
             body.append("  style.stroke-dash: 2")
-        # solid is default, no attribute needed
 
         if link.source.interface:
             body.append(f'  source-arrowhead.label: "{link.source.interface}"')
@@ -89,5 +121,22 @@ class D2Renderer:
 
         if not body:
             return [head]
-
         return [f"{head} {{", *body, "}"]
+
+
+def _node_paths(ir: Diagram) -> dict[str, str]:
+    """Build node-id -> D2 reference path, e.g. '"vlan100"."sw1"' for grouped
+    nodes, '"fw1"' for top-level nodes. D2 uses dot notation to reach nodes
+    inside containers."""
+    group_parent: dict[str, str | None] = {g.id: g.parent for g in ir.groups}
+    paths: dict[str, str] = {}
+    for node in ir.nodes:
+        segments: list[str] = []
+        cur: str | None = node.group
+        while cur is not None:
+            segments.append(cur)
+            cur = group_parent.get(cur)
+        segments.reverse()
+        segments.append(node.id)
+        paths[node.id] = ".".join(f'"{s}"' for s in segments)
+    return paths
