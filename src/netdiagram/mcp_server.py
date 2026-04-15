@@ -14,8 +14,9 @@ from __future__ import annotations
 import typing as _t
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import ValidationError
 
-from netdiagram.ir.models import GroupType, NodeType
+from netdiagram.ir.models import Diagram, GroupType, NodeType
 from netdiagram.ir.schema import diagram_json_schema
 
 app = FastMCP("netdiagram")
@@ -42,6 +43,32 @@ def list_types() -> dict:
         "node_types": list(_t.get_args(NodeType)),
         "group_types": list(_t.get_args(GroupType)),
     }
+
+
+@app.tool()
+def validate_diagram(ir: dict) -> dict:
+    """Validate an IR dict against the Diagram schema.
+
+    Returns {"valid": True, "errors": []} on success. On failure,
+    {"valid": False, "errors": [{"loc": "field.path", "msg": "..."}]}.
+
+    Use this before render_diagram so you can fix errors iteratively
+    rather than seeing a render failure.
+    """
+    try:
+        Diagram.model_validate(ir)
+    except ValidationError as e:
+        return {
+            "valid": False,
+            "errors": [
+                {
+                    "loc": ".".join(str(x) for x in err["loc"]) or "<root>",
+                    "msg": err["msg"],
+                }
+                for err in e.errors()
+            ],
+        }
+    return {"valid": True, "errors": []}
 
 
 def main() -> None:
