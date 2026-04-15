@@ -15,7 +15,7 @@ dependencies = [
   "networkx>=3.2",
   "pygraphviz>=1.12",
   "lxml>=5.0",
-  "mcp>=1.0",
+  "mcp>=1.6,<2.0",
 ]
 
 [project.scripts]
