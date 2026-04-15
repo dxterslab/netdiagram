@@ -36,6 +36,9 @@ packages = ["src/netdiagram"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra --strict-markers"
+markers = [
+  "slow: end-to-end tests that spawn subprocesses (deselect with -m 'not slow')",
+]
 
 [tool.ruff]
 line-length = 100
