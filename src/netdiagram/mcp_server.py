@@ -116,6 +116,56 @@ def render_diagram(ir: dict, format: str = "drawio") -> dict:  # noqa: A002
     }
 
 
+@app.tool()
+def preview_layout(ir: dict) -> dict:
+    """Compute layout for an IR without rendering to a backend format.
+
+    Returns positioned nodes, routed edges, and canvas bounds. Useful for
+    reasoning about spacing before committing to a render.
+    """
+    try:
+        diagram = Diagram.model_validate(ir)
+    except ValidationError as e:
+        return {
+            "error": "validation failed",
+            "errors": [
+                {
+                    "loc": ".".join(str(x) for x in err["loc"]) or "<root>",
+                    "msg": err["msg"],
+                }
+                for err in e.errors()
+            ],
+        }
+
+    try:
+        laid = layout_diagram(diagram)
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"layout failed: {exc}"}
+
+    return {
+        "canvas_width": laid.canvas_width,
+        "canvas_height": laid.canvas_height,
+        "nodes": [
+            {
+                "id": pn.node.id,
+                "x": pn.x,
+                "y": pn.y,
+                "width": pn.width,
+                "height": pn.height,
+            }
+            for pn in laid.nodes
+        ],
+        "edges": [
+            {
+                "source": routed.link.source.node,
+                "target": routed.link.target.node,
+                "path": [{"x": p.x, "y": p.y} for p in routed.path],
+            }
+            for routed in laid.edges
+        ],
+    }
+
+
 def main() -> None:
     """Entry point for the `netdiagram-mcp` console script."""
     app.run()
