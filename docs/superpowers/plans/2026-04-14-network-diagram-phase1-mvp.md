@@ -6,7 +6,7 @@
 
 **Architecture:** Three layers — IR (Pydantic models + JSON Schema), layout engine (graphviz-based placement + custom overlap resolution), renderers (Draw.io only in Phase 1). A Typer CLI wraps it all. Each layer has a clear interface so Phase 2 can plug in D2/Mermaid renderers and the MCP server without disturbing existing code.
 
-**Tech Stack:** Python 3.11+, Pydantic v2, Typer, PyYAML, networkx, pygraphviz, lxml, pytest.
+**Tech Stack:** Python 3.11+, [uv](https://docs.astral.sh/uv/) for packaging and execution, Pydantic v2, Typer, PyYAML, networkx, pygraphviz, lxml, pytest.
 
 **Spec reference:** `docs/superpowers/specs/2026-04-14-network-diagram-design.md`
 
@@ -86,6 +86,8 @@ venv/
 *.drawio.bak
 ```
 
+Note: `uv.lock` is intentionally NOT ignored — it locks transitive dependencies for reproducible builds and must be committed.
+
 - [ ] **Step 2: Create `pyproject.toml`**
 
 ```toml
@@ -108,15 +110,15 @@ dependencies = [
   "lxml>=5.0",
 ]
 
-[project.optional-dependencies]
+[project.scripts]
+netdiagram = "netdiagram.cli:app"
+
+[dependency-groups]
 dev = [
   "pytest>=8.0",
   "pytest-cov>=5.0",
   "ruff>=0.4",
 ]
-
-[project.scripts]
-netdiagram = "netdiagram.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/netdiagram"]
@@ -134,6 +136,8 @@ target-version = "py311"
 select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM"]
 ```
 
+`[dependency-groups]` is PEP 735 — uv reads dev dependencies from there via `uv sync` (as opposed to the older `[project.optional-dependencies]` which required `pip install -e ".[dev]"`). Using `[dependency-groups]` keeps dev tooling out of the published wheel.
+
 - [ ] **Step 3: Create `README.md`**
 
 ```markdown
@@ -143,19 +147,35 @@ LLM-friendly network diagram tool. Describe network topologies in YAML/JSON, ren
 
 ## Install
 
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management and execution.
+
 ```bash
-pip install -e ".[dev]"
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Sync project dependencies (creates .venv and installs runtime + dev deps)
+uv sync
 ```
 
 `pygraphviz` requires graphviz system headers. On macOS: `brew install graphviz`. On Debian/Ubuntu: `apt-get install graphviz graphviz-dev`.
 
 ## Usage
 
+Run the CLI via `uv run`, which ensures commands execute against the project virtualenv:
+
 ```bash
-netdiagram validate topology.yaml
-netdiagram render topology.yaml --format drawio --output network.drawio
-netdiagram schema
-netdiagram list-types
+uv run netdiagram validate topology.yaml
+uv run netdiagram render topology.yaml --format drawio --output network.drawio
+uv run netdiagram schema
+uv run netdiagram list-types
+```
+
+## Development
+
+```bash
+uv run pytest                      # run tests
+uv run pytest tests/test_foo.py    # run one test file
+uv run ruff check src tests        # lint
 ```
 
 See `docs/superpowers/specs/` for the design spec.
@@ -190,19 +210,17 @@ def fixtures_dir() -> Path:
 
 Run:
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-pytest
+uv sync
+uv run pytest
 ```
 
-Expected: `pytest` reports "no tests ran" with exit code 5 (no tests collected — that's fine here, we have none yet). If `pygraphviz` install fails, follow README for system deps.
+Expected: `uv sync` creates `.venv`, resolves all dependencies, and writes `uv.lock`. `pytest` reports "no tests ran" with exit code 5 (no tests collected — that's fine here, we have none yet). If `pygraphviz` install fails, follow README for system deps.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add .gitignore pyproject.toml README.md src/netdiagram/__init__.py tests/__init__.py tests/conftest.py
-git commit -m "chore: project scaffolding with pyproject.toml and test setup"
+git add .gitignore pyproject.toml uv.lock README.md src/netdiagram/__init__.py tests/__init__.py tests/conftest.py
+git commit -m "chore: project scaffolding with uv, pyproject.toml, and test setup"
 ```
 
 ---
@@ -357,7 +375,7 @@ def test_group_cycle_rejected():
 
 - [ ] **Step 3: Run tests to verify they fail**
 
-Run: `pytest tests/test_ir_models.py -v`
+Run: `uv run pytest tests/test_ir_models.py -v`
 Expected: ImportError / ModuleNotFoundError for `netdiagram.ir`.
 
 - [ ] **Step 4: Implement models**
@@ -544,7 +562,7 @@ class Diagram(BaseModel):
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pytest tests/test_ir_models.py -v`
+Run: `uv run pytest tests/test_ir_models.py -v`
 Expected: all 8 tests pass.
 
 - [ ] **Step 6: Commit**
@@ -710,7 +728,7 @@ def test_load_json(tmp_path):
 
 - [ ] **Step 3: Run tests to verify they fail**
 
-Run: `pytest tests/test_ir_loader.py -v`
+Run: `uv run pytest tests/test_ir_loader.py -v`
 Expected: ImportError — `netdiagram.ir.loader` does not exist.
 
 - [ ] **Step 4: Implement the loader**
@@ -774,7 +792,7 @@ def _format_validation_error(path: Path, err: ValidationError) -> str:
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pytest tests/test_ir_loader.py -v`
+Run: `uv run pytest tests/test_ir_loader.py -v`
 Expected: all 6 tests pass.
 
 - [ ] **Step 6: Commit**
@@ -827,7 +845,7 @@ def test_schema_serializable():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_ir_schema.py -v`
+Run: `uv run pytest tests/test_ir_schema.py -v`
 Expected: ImportError on `netdiagram.ir.schema`.
 
 - [ ] **Step 3: Implement schema export**
@@ -854,7 +872,7 @@ def diagram_json_schema() -> dict[str, Any]:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_ir_schema.py -v`
+Run: `uv run pytest tests/test_ir_schema.py -v`
 Expected: all 3 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -988,7 +1006,7 @@ __all__ = ["Renderer"]
 
 - [ ] **Step 5: Smoke test the imports**
 
-Run: `python -c "from netdiagram.layout import LayoutedDiagram; from netdiagram.renderers import Renderer; print('ok')"`
+Run: `uv run python -c "from netdiagram.layout import LayoutedDiagram; from netdiagram.renderers import Renderer; print('ok')"`
 Expected: `ok`
 
 - [ ] **Step 6: Commit**
@@ -1047,7 +1065,7 @@ def test_label_with_unicode():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_layout_dimensions.py -v`
+Run: `uv run pytest tests/test_layout_dimensions.py -v`
 Expected: ImportError on `netdiagram.layout.dimensions`.
 
 - [ ] **Step 3: Implement dimension computation**
@@ -1085,7 +1103,7 @@ def compute_node_size(node: Node) -> tuple[float, float]:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_layout_dimensions.py -v`
+Run: `uv run pytest tests/test_layout_dimensions.py -v`
 Expected: all 4 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -1161,7 +1179,7 @@ def test_hierarchical_fallback():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_layout_topology.py -v`
+Run: `uv run pytest tests/test_layout_topology.py -v`
 Expected: ImportError on `netdiagram.layout.topology`.
 
 - [ ] **Step 3: Implement classification**
@@ -1216,7 +1234,7 @@ def classify_topology(g: nx.Graph) -> TopologyShape:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_layout_topology.py -v`
+Run: `uv run pytest tests/test_layout_topology.py -v`
 Expected: all 6 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -1278,7 +1296,7 @@ def test_ring_positions_are_circular():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_layout_placement.py -v`
+Run: `uv run pytest tests/test_layout_placement.py -v`
 Expected: ImportError on `netdiagram.layout.placement`.
 
 - [ ] **Step 3: Implement placement**
@@ -1364,7 +1382,7 @@ def _graphviz_positions(g: nx.Graph, engine: str) -> dict[str, tuple[float, floa
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_layout_placement.py -v`
+Run: `uv run pytest tests/test_layout_placement.py -v`
 Expected: all 3 tests pass. If graphviz_layout fails due to missing system graphviz, fix the install (see README).
 
 - [ ] **Step 5: Commit**
@@ -1440,7 +1458,7 @@ def test_padding_enforced():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_layout_overlap.py -v`
+Run: `uv run pytest tests/test_layout_overlap.py -v`
 Expected: ImportError on `netdiagram.layout.overlap`.
 
 - [ ] **Step 3: Implement overlap resolution**
@@ -1519,7 +1537,7 @@ def _push_apart(a: PositionedNode, b: PositionedNode, padding: float) -> bool:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_layout_overlap.py -v`
+Run: `uv run pytest tests/test_layout_overlap.py -v`
 Expected: all 4 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -1612,7 +1630,7 @@ def test_single_node_diagram_lays_out():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_layout_engine.py -v`
+Run: `uv run pytest tests/test_layout_engine.py -v`
 Expected: ImportError on `netdiagram.layout.engine`.
 
 - [ ] **Step 3: Implement the engine**
@@ -1751,7 +1769,7 @@ __all__ = [
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pytest tests/test_layout_engine.py -v`
+Run: `uv run pytest tests/test_layout_engine.py -v`
 Expected: all 5 tests pass.
 
 - [ ] **Step 6: Commit**
@@ -1847,7 +1865,7 @@ def test_node_geometry_uses_layout_coordinates():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_renderer_drawio.py -v`
+Run: `uv run pytest tests/test_renderer_drawio.py -v`
 Expected: ImportError.
 
 - [ ] **Step 3: Implement the renderer (nodes only)**
@@ -1958,7 +1976,7 @@ __all__ = ["Renderer", "DrawioRenderer"]
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pytest tests/test_renderer_drawio.py -v`
+Run: `uv run pytest tests/test_renderer_drawio.py -v`
 Expected: all 4 tests pass.
 
 - [ ] **Step 6: Commit**
@@ -2050,7 +2068,7 @@ def test_edge_style_reflects_link_style():
 
 - [ ] **Step 2: Run to confirm new tests fail**
 
-Run: `pytest tests/test_renderer_drawio.py -v`
+Run: `uv run pytest tests/test_renderer_drawio.py -v`
 Expected: the three new tests fail because edges are not yet rendered.
 
 - [ ] **Step 3: Add edge rendering to `DrawioRenderer`**
@@ -2201,7 +2219,7 @@ class DrawioRenderer:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_renderer_drawio.py -v`
+Run: `uv run pytest tests/test_renderer_drawio.py -v`
 Expected: all 7 tests pass.
 
 - [ ] **Step 5: Commit**
@@ -2252,7 +2270,7 @@ def test_layout_includes_positioned_groups():
 
 - [ ] **Step 2: Run to confirm the test fails**
 
-Run: `pytest tests/test_layout_engine.py::test_layout_includes_positioned_groups -v`
+Run: `uv run pytest tests/test_layout_engine.py::test_layout_includes_positioned_groups -v`
 Expected: FAIL — groups list is empty.
 
 - [ ] **Step 3: Implement group positioning in the engine**
@@ -2348,7 +2366,7 @@ Keep `_build_graph`, `_normalize`, `_route_edges` as-is. Delete the old `_canvas
 
 - [ ] **Step 4: Run layout tests**
 
-Run: `pytest tests/test_layout_engine.py -v`
+Run: `uv run pytest tests/test_layout_engine.py -v`
 Expected: all 6 layout tests pass (including the new group test).
 
 - [ ] **Step 5: Add failing renderer test**
@@ -2381,7 +2399,7 @@ def test_groups_rendered_as_container_cells():
 
 - [ ] **Step 6: Run to confirm the new test fails**
 
-Run: `pytest tests/test_renderer_drawio.py::test_groups_rendered_as_container_cells -v`
+Run: `uv run pytest tests/test_renderer_drawio.py::test_groups_rendered_as_container_cells -v`
 Expected: FAIL — no `group-vlan100` cell is produced yet.
 
 - [ ] **Step 7: Render groups as Draw.io containers**
@@ -2562,7 +2580,7 @@ def _order_groups(diagram: LayoutedDiagram):
 
 - [ ] **Step 8: Run all renderer and layout tests**
 
-Run: `pytest tests/test_renderer_drawio.py tests/test_layout_engine.py -v`
+Run: `uv run pytest tests/test_renderer_drawio.py tests/test_layout_engine.py -v`
 Expected: all tests pass.
 
 - [ ] **Step 9: Commit**
@@ -2635,7 +2653,7 @@ def test_list_types_prints_node_and_group_types():
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_cli.py -v`
+Run: `uv run pytest tests/test_cli.py -v`
 Expected: ImportError on `netdiagram.cli`.
 
 - [ ] **Step 3: Implement the CLI**
@@ -2733,15 +2751,15 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pytest tests/test_cli.py -v`
+Run: `uv run pytest tests/test_cli.py -v`
 Expected: all 5 tests pass.
 
 - [ ] **Step 5: Smoke test the installed command**
 
 Run:
 ```bash
-netdiagram list-types
-netdiagram validate tests/fixtures/simple_two_nodes.yaml
+uv run netdiagram list-types
+uv run netdiagram validate tests/fixtures/simple_two_nodes.yaml
 ```
 Expected: both commands succeed and print reasonable output.
 
@@ -2825,7 +2843,7 @@ def test_cli_render_produces_openable_file(fixtures_dir: Path, tmp_path: Path) -
 
 - [ ] **Step 2: Run the full test suite**
 
-Run: `pytest -v`
+Run: `uv run pytest -v`
 Expected: every test in the suite passes (including this new file).
 
 - [ ] **Step 3: Commit**
@@ -2841,12 +2859,12 @@ git commit -m "test: end-to-end YAML -> Draw.io XML rendering with branch office
 
 - [ ] **Final verification**
 
-Run: `pytest --cov=netdiagram --cov-report=term-missing`
+Run: `uv run pytest --cov=netdiagram --cov-report=term-missing`
 Expected: all tests pass, coverage reported per module.
 
 - [ ] **Manual verification (author responsibility)**
 
-1. `netdiagram render tests/fixtures/branch_office.yaml --output /tmp/branch.drawio`
+1. `uv run netdiagram render tests/fixtures/branch_office.yaml --output /tmp/branch.drawio`
 2. Open `/tmp/branch.drawio` in Draw.io (desktop or app.diagrams.net).
 3. Confirm:
    - Three nodes visible (fw1, core-sw1, srv1) with distinct shapes per type

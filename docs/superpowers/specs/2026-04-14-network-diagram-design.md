@@ -217,6 +217,7 @@ The `preview_layout` tool lets the LLM reason about spacing before committing to
 ## Tech Stack
 
 - **Python 3.11+**
+- **uv** — packaging, dependency resolution, lockfile (`uv.lock`), and command execution (`uv run ...`). Replaces the traditional `python -m venv` + `pip install -e .` workflow.
 - **Pydantic v2** — IR models, JSON Schema generation
 - **Typer** — CLI
 - **PyYAML** — YAML parsing
@@ -225,6 +226,8 @@ The `preview_layout` tool lets the LLM reason about spacing before committing to
 - **lxml** — Draw.io XML generation
 - **mcp** — official MCP Python SDK
 - **ttp** (phase 3) — optional CLI output parsers
+
+Dev dependencies (pytest, pytest-cov, ruff) are declared in `[dependency-groups]` (PEP 735) so uv installs them via `uv sync` without shipping them in the published wheel. The `netdiagram` CLI runs via `uv run netdiagram <command>` during development; after a `uv pip install` or published wheel install the console script is available directly.
 
 ## Project Layout
 
