@@ -116,7 +116,7 @@ class Link(BaseModel):
 class Diagram(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    version: str = "1.0"
+    version: Literal["1.0"] = "1.0"
     metadata: Metadata
     groups: list[Group] = Field(default_factory=list)
     nodes: list[Node]
@@ -139,6 +139,11 @@ class Diagram(BaseModel):
             if g.id in group_ids:
                 raise ValueError(f"duplicate group id '{g.id}'")
             group_ids.add(g.id)
+
+        # Node/group id namespace collision
+        overlap = node_ids & group_ids
+        if overlap:
+            raise ValueError(f"ids used as both node and group: {sorted(overlap)}")
 
         # Group parent references + cycle detection
         for g in self.groups:
@@ -165,11 +170,20 @@ class Diagram(BaseModel):
 
     def _check_group_cycles(self, group_ids: set[str]) -> None:
         parents = {g.id: g.parent for g in self.groups}
+        visited: set[str] = set()
+        in_stack: set[str] = set()
+
+        def dfs(gid: str) -> None:
+            if gid in in_stack:
+                raise ValueError(f"cycle in group hierarchy at '{gid}'")
+            if gid in visited:
+                return
+            visited.add(gid)
+            in_stack.add(gid)
+            parent = parents.get(gid)
+            if parent is not None:
+                dfs(parent)
+            in_stack.remove(gid)
+
         for gid in group_ids:
-            seen: set[str] = set()
-            cur: str | None = gid
-            while cur is not None:
-                if cur in seen:
-                    raise ValueError(f"cycle in group hierarchy at '{cur}'")
-                seen.add(cur)
-                cur = parents.get(cur)
+            dfs(gid)

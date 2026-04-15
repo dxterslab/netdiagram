@@ -102,3 +102,22 @@ def test_group_cycle_rejected():
             ],
             nodes=[],
         )
+
+
+def test_node_and_group_id_collision_rejected():
+    with pytest.raises(ValidationError, match="ids used as both node and group"):
+        Diagram(
+            version="1.0",
+            metadata=Metadata(title="T", type="logical"),
+            groups=[Group(id="shared", label="G", type="zone")],
+            nodes=[Node(id="shared", label="N", type="router")],
+        )
+
+
+def test_unknown_version_rejected():
+    with pytest.raises(ValidationError):
+        Diagram(
+            version="99.0",
+            metadata=Metadata(title="T", type="physical"),
+            nodes=[Node(id="a", label="a", type="router")],
+        )

@@ -1,5 +1,6 @@
 from netdiagram.ir.models import (
     Diagram,
+    DiagramType,
     Group,
     GroupType,
     Interface,
@@ -14,6 +15,7 @@ from netdiagram.ir.models import (
 
 __all__ = [
     "Diagram",
+    "DiagramType",
     "Group",
     "GroupType",
     "Interface",
