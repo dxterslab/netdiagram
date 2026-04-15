@@ -4,10 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-Greenfield project. As of 2026-04-14 the repo contains the design spec and Phase 1 implementation plan only — no source code yet. Start by reading:
+Phase 1 MVP complete (as of 2026-04-15). The repo has:
+- Full IR layer (Pydantic models, loader, JSON Schema export)
+- Layout engine (topology classification → graphviz placement → overlap resolution → canvas normalization → edge routing → group bounds)
+- Draw.io renderer (nodes, edges with interface labels, groups as containers)
+- Typer CLI (`validate`, `render`, `schema`, `list-types`)
+- 57 tests, all passing
 
+Phase 2 (pending) adds the D2 and Mermaid renderers plus the MCP server.
+Phase 3 (pending) adds TTP-based parsers for LLDP/CDP output.
+
+Reference:
 - `docs/superpowers/specs/2026-04-14-network-diagram-design.md` — design decisions and rationale
-- `docs/superpowers/plans/2026-04-14-network-diagram-phase1-mvp.md` — task-by-task implementation plan for the MVP
+- `docs/superpowers/plans/2026-04-14-network-diagram-phase1-mvp.md` — task-by-task plan (completed)
 
 ## What This Tool Does
 

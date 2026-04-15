@@ -1,6 +1,6 @@
 from lxml import etree
 
-from netdiagram.ir.models import Diagram, Interface, Link, LinkEndpoint, Metadata, Node
+from netdiagram.ir.models import Diagram, Group, Interface, Link, LinkEndpoint, Metadata, Node
 from netdiagram.layout import layout_diagram
 from netdiagram.renderers.drawio import DrawioRenderer
 
@@ -128,9 +128,6 @@ def test_edge_style_reflects_link_style():
     root = _parse(_render(d))
     edge = next(c for c in root.findall(".//mxCell") if c.get("edge") == "1")
     assert "dashed=1" in (edge.get("style") or "")
-
-
-from netdiagram.ir.models import Group
 
 
 def test_groups_rendered_as_container_cells():

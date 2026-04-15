@@ -56,8 +56,12 @@ def render(
         typer.echo(f"Unknown format '{fmt}'. Supported: {', '.join(_RENDERERS)}")
         raise typer.Exit(code=2)
 
-    laid = layout_diagram(diagram)
-    content = renderer.render(laid)
+    try:
+        laid = layout_diagram(diagram)
+        content = renderer.render(laid)
+    except Exception as e:  # noqa: BLE001
+        typer.echo(f"render failed: {e}")
+        raise typer.Exit(code=3)
 
     out = output or path.with_suffix(renderer.extension)
     out.write_text(content, encoding="utf-8")

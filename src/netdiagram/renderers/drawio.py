@@ -7,20 +7,21 @@ from lxml import etree
 from netdiagram.ir.models import LinkStyle, NodeType
 from netdiagram.layout.types import LayoutedDiagram, PositionedNode, RoutedEdge
 
+_S = "html=1;whiteSpace=wrap;"
 _STYLE_BY_TYPE: dict[NodeType, str] = {
-    "router": "shape=mscae/router;html=1;whiteSpace=wrap;fillColor=#1B5E9E;fontColor=#FFFFFF;",
-    "switch": "shape=mscae/switch;html=1;whiteSpace=wrap;fillColor=#0072C6;fontColor=#FFFFFF;",
-    "firewall": "shape=cisco/firewall;html=1;whiteSpace=wrap;fillColor=#B0343C;fontColor=#FFFFFF;",
-    "server": "shape=mscae/server;html=1;whiteSpace=wrap;fillColor=#5C8A3F;fontColor=#FFFFFF;",
-    "load_balancer": "shape=mscae/load_balancer;html=1;whiteSpace=wrap;fillColor=#7B5BA1;fontColor=#FFFFFF;",
-    "access_point": "shape=mscae/wireless_ap;html=1;whiteSpace=wrap;fillColor=#2C7873;fontColor=#FFFFFF;",
-    "endpoint": "shape=mscae/workstation;html=1;whiteSpace=wrap;fillColor=#7A7A7A;fontColor=#FFFFFF;",
-    "vpc": "shape=mscae/cloud;html=1;whiteSpace=wrap;fillColor=#D3E6F1;fontColor=#000000;",
-    "cloud_lb": "shape=mscae/load_balancer;html=1;whiteSpace=wrap;fillColor=#7B5BA1;fontColor=#FFFFFF;",
-    "cloud_db": "shape=mscae/database;html=1;whiteSpace=wrap;fillColor=#A44E8A;fontColor=#FFFFFF;",
-    "internet_gateway": "shape=mscae/internet;html=1;whiteSpace=wrap;fillColor=#3F7BC5;fontColor=#FFFFFF;",
-    "nat_gateway": "shape=mscae/nat_gateway;html=1;whiteSpace=wrap;fillColor=#3F7BC5;fontColor=#FFFFFF;",
-    "security_group": "shape=mscae/security;html=1;whiteSpace=wrap;fillColor=#B0343C;fontColor=#FFFFFF;",
+    "router": _S + "shape=mscae/router;fillColor=#1B5E9E;fontColor=#FFFFFF;",
+    "switch": _S + "shape=mscae/switch;fillColor=#0072C6;fontColor=#FFFFFF;",
+    "firewall": _S + "shape=cisco/firewall;fillColor=#B0343C;fontColor=#FFFFFF;",
+    "server": _S + "shape=mscae/server;fillColor=#5C8A3F;fontColor=#FFFFFF;",
+    "load_balancer": _S + "shape=mscae/load_balancer;fillColor=#7B5BA1;fontColor=#FFFFFF;",
+    "access_point": _S + "shape=mscae/wireless_ap;fillColor=#2C7873;fontColor=#FFFFFF;",
+    "endpoint": _S + "shape=mscae/workstation;fillColor=#7A7A7A;fontColor=#FFFFFF;",
+    "vpc": _S + "shape=mscae/cloud;fillColor=#D3E6F1;fontColor=#000000;",
+    "cloud_lb": _S + "shape=mscae/load_balancer;fillColor=#7B5BA1;fontColor=#FFFFFF;",
+    "cloud_db": _S + "shape=mscae/database;fillColor=#A44E8A;fontColor=#FFFFFF;",
+    "internet_gateway": _S + "shape=mscae/internet;fillColor=#3F7BC5;fontColor=#FFFFFF;",
+    "nat_gateway": _S + "shape=mscae/nat_gateway;fillColor=#3F7BC5;fontColor=#FFFFFF;",
+    "security_group": _S + "shape=mscae/security;fillColor=#B0343C;fontColor=#FFFFFF;",
     "generic": "rounded=1;whiteSpace=wrap;html=1;fillColor=#E8E8E8;",
 }
 
@@ -30,14 +31,15 @@ _EDGE_STYLE_BY_LINK_STYLE: dict[LinkStyle, str] = {
     "dotted": "endArrow=none;html=1;rounded=0;dashed=1;dashPattern=1 4;",
 }
 
+_GS = "rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontSize=12;"
 _GROUP_STYLE_BY_TYPE: dict[str, str] = {
-    "subnet": "rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;verticalAlign=top;fontSize=12;",
-    "vlan": "rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F9A825;verticalAlign=top;fontSize=12;",
-    "vpc": "rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;verticalAlign=top;fontSize=12;",
-    "availability_zone": "rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;verticalAlign=top;fontSize=12;dashed=1;",
-    "region": "rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#4527A0;verticalAlign=top;fontSize=12;",
-    "zone": "rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#9E9E9E;verticalAlign=top;fontSize=12;",
-    "dmz": "rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;verticalAlign=top;fontSize=12;",
+    "subnet": _GS + "fillColor=#F5F5F5;strokeColor=#9E9E9E;",
+    "vlan": _GS + "fillColor=#FFF8E1;strokeColor=#F9A825;",
+    "vpc": _GS + "fillColor=#E8F5E9;strokeColor=#2E7D32;",
+    "availability_zone": _GS + "fillColor=#E3F2FD;strokeColor=#1565C0;dashed=1;",
+    "region": _GS + "fillColor=#EDE7F6;strokeColor=#4527A0;",
+    "zone": _GS + "fillColor=#F5F5F5;strokeColor=#9E9E9E;",
+    "dmz": _GS + "fillColor=#FFEBEE;strokeColor=#C62828;",
 }
 
 
@@ -133,7 +135,12 @@ class DrawioRenderer:
             rel_x = pn.x
             rel_y = pn.y
         geom = etree.SubElement(
-            cell, "mxGeometry", x=str(rel_x), y=str(rel_y), width=str(pn.width), height=str(pn.height)
+            cell,
+            "mxGeometry",
+            x=str(rel_x),
+            y=str(rel_y),
+            width=str(pn.width),
+            height=str(pn.height),
         )
         geom.set("as", "geometry")
 
@@ -156,19 +163,33 @@ class DrawioRenderer:
 
         if re.link.source.interface:
             self._append_endpoint_label(
-                root, parent_id=edge_id, label=re.link.source.interface, position=-0.7
+                root,
+                parent_id=edge_id,
+                label=re.link.source.interface,
+                position=-0.7,
+                cell_id=f"{edge_id}-src-label",
             )
         if re.link.target.interface:
             self._append_endpoint_label(
-                root, parent_id=edge_id, label=re.link.target.interface, position=0.7
+                root,
+                parent_id=edge_id,
+                label=re.link.target.interface,
+                position=0.7,
+                cell_id=f"{edge_id}-tgt-label",
             )
 
     def _append_endpoint_label(
-        self, root: etree._Element, parent_id: str, label: str, position: float
+        self,
+        root: etree._Element,
+        parent_id: str,
+        label: str,
+        position: float,
+        cell_id: str,
     ) -> None:
         cell = etree.SubElement(
             root,
             "mxCell",
+            id=cell_id,
             value=label,
             style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];",
             vertex="1",
