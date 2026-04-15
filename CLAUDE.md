@@ -49,6 +49,19 @@ uv run netdiagram validate topology.yaml                  # run the CLI
 
 `pygraphviz` requires system graphviz headers. macOS: `brew install graphviz`. Debian/Ubuntu: `apt-get install graphviz graphviz-dev`.
 
+### macOS + Python 3.14 + uv: CLI import workaround
+
+On macOS with Python 3.14 and uv 0.11+, `uv sync` sets the `UF_HIDDEN` flag on the editable-install `.pth` file; Python 3.14's `site.addpackage()` skips hidden files, so `uv run netdiagram ...` fails with `ImportError`. Tests via `uv run pytest` are unaffected because `[tool.pytest.ini_options] pythonpath = ["src"]` injects the path separately.
+
+**Workarounds (pick one):**
+```bash
+# Option A — strip the hidden flag after uv sync:
+chflags nohidden .venv/lib/python*/site-packages/_editable_impl_*.pth
+
+# Option B — prefix CLI runs with PYTHONPATH:
+PYTHONPATH=src uv run netdiagram validate topology.yaml
+```
+
 ## Conventions
 
 - **TDD.** Every task in the plan writes a failing test first, then the minimal implementation. Don't batch up code without corresponding tests.
