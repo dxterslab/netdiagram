@@ -19,7 +19,13 @@ from netdiagram.layout.dimensions import compute_node_size
 from netdiagram.layout.overlap import resolve_overlaps
 from netdiagram.layout.placement import compute_initial_positions
 from netdiagram.layout.topology import classify_topology
-from netdiagram.layout.types import LayoutedDiagram, Point, PositionedGroup, PositionedNode, RoutedEdge
+from netdiagram.layout.types import (
+    LayoutedDiagram,
+    Point,
+    PositionedGroup,
+    PositionedNode,
+    RoutedEdge,
+)
 
 _MARGIN = 40.0
 _NODE_PADDING = 20.0
