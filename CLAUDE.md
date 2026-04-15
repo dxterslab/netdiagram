@@ -58,6 +58,10 @@ uv run netdiagram validate topology.yaml                  # run the CLI
 
 `pygraphviz` requires system graphviz headers. macOS: `brew install graphviz`. Debian/Ubuntu: `apt-get install graphviz graphviz-dev`.
 
+### MCP server
+
+`netdiagram-mcp` is a stdio MCP server that exposes the pipeline to LLMs. See `docs/mcp-integration.md` for client config and the tool list.
+
 ### macOS + Python 3.14 + uv: CLI import workaround
 
 On macOS with Python 3.14 and uv 0.11+, `uv sync` sets the `UF_HIDDEN` flag on the editable-install `.pth` file; Python 3.14's `site.addpackage()` skips hidden files, so `uv run netdiagram ...` fails with `ImportError`. Tests via `uv run pytest` are unaffected because `[tool.pytest.ini_options] pythonpath = ["src"]` injects the path separately.

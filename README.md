@@ -2,6 +2,8 @@
 
 LLM-friendly network diagram tool. Describe network topologies in YAML/JSON, render to Draw.io today (D2 and Mermaid planned).
 
+Also ships as an **MCP server** (`netdiagram-mcp`) so LLMs can validate, lay out, and render diagrams directly in conversation. See `docs/mcp-integration.md`.
+
 ## Install
 
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management and execution.
@@ -25,6 +27,7 @@ uv run netdiagram validate topology.yaml
 uv run netdiagram render topology.yaml --format drawio --output network.drawio
 uv run netdiagram schema
 uv run netdiagram list-types
+uv run netdiagram-mcp                         # start the MCP server on stdio
 ~~~
 
 ## Development
