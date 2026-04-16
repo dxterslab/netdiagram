@@ -148,3 +148,50 @@ def test_groups_rendered_as_container_cells():
     node_cells = {c.get("id"): c for c in root.findall(".//mxCell") if c.get("vertex") == "1"}
     assert node_cells["node-sw1"].get("parent") == "group-vlan100"
     assert node_cells["node-sw2"].get("parent") == "group-vlan100"
+
+
+def test_routed_edge_with_explicit_waypoints_emits_mxpoint_elements(monkeypatch):
+    """Forge a RoutedEdge with explicit path points and verify the renderer
+    emits them as mxPoint children inside <Array as="points">."""
+    from netdiagram.ir.models import Diagram, Link, LinkEndpoint, Metadata, Node
+    from netdiagram.layout.types import (
+        LayoutedDiagram,
+        Point,
+        PositionedNode,
+        RoutedEdge,
+    )
+
+    diagram = Diagram(
+        metadata=Metadata(title="T", type="physical"),
+        nodes=[
+            Node(id="a", label="a", type="router"),
+            Node(id="b", label="b", type="router"),
+        ],
+        links=[Link(source=LinkEndpoint(node="a"), target=LinkEndpoint(node="b"))],
+    )
+    pn_a = PositionedNode(node=diagram.nodes[0], x=40, y=40, width=100, height=60)
+    pn_b = PositionedNode(node=diagram.nodes[1], x=400, y=40, width=100, height=60)
+    edge = RoutedEdge(
+        link=diagram.links[0],
+        path=[Point(90, 70), Point(200, 70), Point(200, 150), Point(450, 150)],
+    )
+    laid = LayoutedDiagram(
+        diagram=diagram,
+        nodes=[pn_a, pn_b],
+        edges=[edge],
+        canvas_width=600,
+        canvas_height=300,
+    )
+    xml = DrawioRenderer().render(laid)
+    root = _parse(xml)
+    e_cell = next(c for c in root.findall(".//mxCell") if c.get("edge") == "1")
+    arr = e_cell.find("mxGeometry/Array")
+    assert arr is not None
+    assert arr.get("as") == "points"
+    pts = arr.findall("mxPoint")
+    # Two interior points (path has 4 total; start and end are source/target)
+    assert len(pts) == 2
+    xs = [float(p.get("x")) for p in pts]
+    ys = [float(p.get("y")) for p in pts]
+    assert xs == [200.0, 200.0]
+    assert ys == [70.0, 150.0]
