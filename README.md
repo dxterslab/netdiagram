@@ -6,17 +6,14 @@ Also ships as an **MCP server** (`netdiagram-mcp`) so LLMs can validate, lay out
 
 ## Install
 
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management and execution.
+**Quick install** (requires [uv](https://docs.astral.sh/uv/) + graphviz headers):
 
 ~~~bash
-# Install uv if you don't have it
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Sync project dependencies (creates .venv and installs runtime + dev deps)
-uv sync
+brew install graphviz                 # macOS — required for pygraphviz
+uv tool install git+https://github.com/dxterslab/netdiagram
 ~~~
 
-`pygraphviz` requires graphviz system headers. On macOS: `brew install graphviz`. On Debian/Ubuntu: `apt-get install graphviz graphviz-dev`.
+After install, `netdiagram` and `netdiagram-mcp` are available globally. See [docs/installation.md](docs/installation.md) for pip/pipx install, local dev setup, MCP client configuration, and troubleshooting.
 
 ## Usage
 
@@ -41,6 +38,7 @@ uv run ruff check src tests        # lint
 
 ## Documentation
 
+- [Installation Guide](docs/installation.md) — prerequisites, install methods, MCP config, troubleshooting
 - [CLI Usage Guide](docs/cli-usage.md) — commands, examples, link styles, tips
 - [MCP + LLM Workflow](docs/mcp-llm-workflow.md) — how to use an LLM to build diagrams from raw network data
 - [MCP Integration](docs/mcp-integration.md) — client configuration, tool reference, debugging
