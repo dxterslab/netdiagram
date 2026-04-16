@@ -18,6 +18,7 @@ import networkx as nx
 
 from netdiagram.ir.models import Diagram
 from netdiagram.layout.dimensions import compute_node_size
+from netdiagram.layout.labels import compute_label_boxes, resolve_collisions
 from netdiagram.layout.overlap import resolve_overlaps
 from netdiagram.layout.placement import compute_initial_positions
 from netdiagram.layout.routing import Obstacle, ObstacleGrid, find_path, simplify_path
@@ -66,6 +67,8 @@ def layout_diagram(diagram: Diagram) -> LayoutedDiagram:
         canvas_height=canvas_h,
     )
     laid.edges = _route_edges(diagram, laid)
+    # Resolve label collisions and store computed positions on each edge.
+    _place_labels(laid)
     return laid
 
 
@@ -188,6 +191,22 @@ def _route_edges(diagram: Diagram, laid: LayoutedDiagram) -> list[RoutedEdge]:
 
         out.append(RoutedEdge(link=link, path=path_points))
     return out
+
+
+def _place_labels(laid: LayoutedDiagram) -> None:
+    """Compute collision-free positions for interface labels on edges."""
+    boxes = compute_label_boxes(laid.edges)
+    if not boxes:
+        return
+    resolved = resolve_collisions(boxes)
+    # Map resolved boxes back to their edges.
+    for box in resolved:
+        edge = laid.edges[box.edge_index]
+        pos = Point(box.x + box.width / 2, box.y + box.height / 2)
+        if box.role == "source":
+            edge.source_label_pos = pos
+        else:
+            edge.target_label_pos = pos
 
 
 def _fan_out_offset(
