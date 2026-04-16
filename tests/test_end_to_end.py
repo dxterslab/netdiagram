@@ -77,3 +77,29 @@ def test_cli_render_produces_openable_file(fixtures_dir: Path, tmp_path: Path) -
     # The file must parse as XML with an mxfile root
     parsed = etree.parse(str(out))
     assert parsed.getroot().tag == "mxfile"
+
+
+def test_branch_office_edges_avoid_node_interiors(fixtures_dir: Path) -> None:
+    """Routed edges in the branch office topology must not pierce node bodies."""
+    diagram = load_diagram(fixtures_dir / "branch_office.yaml")
+    laid = layout_diagram(diagram)
+
+    # For every edge, check no interior path point sits inside any node bbox
+    # (other than the endpoint nodes — those are endpoint-connected, not pierced).
+    endpoint_node_ids = {pn.node.id for pn in laid.nodes}
+    for edge in laid.edges:
+        s_id = edge.link.source.node
+        t_id = edge.link.target.node
+        # Interior path points are path[1:-1]
+        for p in edge.path[1:-1]:
+            for pn in laid.nodes:
+                if pn.node.id in (s_id, t_id):
+                    continue
+                inside_x = pn.x < p.x < pn.x + pn.width
+                inside_y = pn.y < p.y < pn.y + pn.height
+                assert not (inside_x and inside_y), (
+                    f"edge {s_id}->{t_id} pierces node {pn.node.id} "
+                    f"at interior point ({p.x}, {p.y})"
+                )
+    # Sanity: endpoint-node ids are actually in the layout
+    assert endpoint_node_ids
