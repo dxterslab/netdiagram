@@ -116,6 +116,35 @@ def test_parallel_edges_have_distinct_endpoints():
     assert end_a != end_b, "parallel edges must fan out at the target endpoint"
 
 
+def test_parallel_edges_get_non_overlapping_label_positions():
+    """When two parallel edges have source interface labels, the computed
+    label positions should not overlap."""
+    d = Diagram(
+        metadata=Metadata(title="T", type="physical"),
+        nodes=[
+            Node(id="a", label="a", type="router",
+                 interfaces=[Interface(id="swp50"), Interface(id="swp52")]),
+            Node(id="b", label="b", type="router",
+                 interfaces=[Interface(id="swp50"), Interface(id="swp52")]),
+        ],
+        links=[
+            Link(source=LinkEndpoint(node="a", interface="swp50"),
+                 target=LinkEndpoint(node="b", interface="swp50")),
+            Link(source=LinkEndpoint(node="a", interface="swp52"),
+                 target=LinkEndpoint(node="b", interface="swp52")),
+        ],
+    )
+    laid = layout_diagram(d)
+    # Both edges should have non-None source_label_pos
+    for edge in laid.edges:
+        assert edge.source_label_pos is not None
+        assert edge.target_label_pos is not None
+    # The source label positions should differ (collision resolved)
+    sp0 = laid.edges[0].source_label_pos
+    sp1 = laid.edges[1].source_label_pos
+    assert (sp0.x, sp0.y) != (sp1.x, sp1.y), "source labels must not overlap"
+
+
 def test_edge_routes_around_intermediate_node():
     """Place three nodes in a line. The edge from left to right must route
     around the center node rather than straight through it."""
