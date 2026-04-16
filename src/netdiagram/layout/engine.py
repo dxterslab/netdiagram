@@ -12,6 +12,8 @@ Pipeline stages:
 
 from __future__ import annotations
 
+import math
+
 import networkx as nx
 
 from netdiagram.ir.models import Diagram
@@ -137,13 +139,52 @@ def _canvas_bounds_with_groups(
 
 
 def _route_edges(diagram: Diagram, laid: LayoutedDiagram) -> list[RoutedEdge]:
-    """Phase 1: straight-line edges between node centers."""
+    """Phase 2 routing: straight lines between endpoints, but fan parallel
+    edges out perpendicular to the connecting vector so they don't overlap."""
     by_id = {pn.node.id: pn for pn in laid.nodes}
+
+    # Group links by unordered node pair so peer peerlinks (a<->b and b<->a)
+    # fan out together.
+    pair_counts: dict[tuple[str, str], int] = {}
+    for link in diagram.links:
+        pair = tuple(sorted((link.source.node, link.target.node)))
+        pair_counts[pair] = pair_counts.get(pair, 0) + 1
+    pair_index: dict[tuple[str, str], int] = dict.fromkeys(pair_counts, 0)
+
     out: list[RoutedEdge] = []
     for link in diagram.links:
+        pair = tuple(sorted((link.source.node, link.target.node)))
+        idx = pair_index[pair]
+        total = pair_counts[pair]
+        pair_index[pair] += 1
+
         s = by_id[link.source.node]
         t = by_id[link.target.node]
-        start = Point(s.x + s.width / 2, s.y + s.height / 2)
-        end = Point(t.x + t.width / 2, t.y + t.height / 2)
+        sx, sy = s.x + s.width / 2, s.y + s.height / 2
+        tx, ty = t.x + t.width / 2, t.y + t.height / 2
+
+        dx_off, dy_off = _fan_out_offset(sx, sy, tx, ty, idx, total)
+        start = Point(sx + dx_off, sy + dy_off)
+        end = Point(tx + dx_off, ty + dy_off)
         out.append(RoutedEdge(link=link, path=[start, end]))
     return out
+
+
+def _fan_out_offset(
+    sx: float, sy: float, tx: float, ty: float, idx: int, total: int
+) -> tuple[float, float]:
+    """Return a perpendicular offset so the i-th of `total` parallel edges
+    sits on its own line. Spacing is 14px between adjacent edges."""
+    if total <= 1:
+        return (0.0, 0.0)
+
+    dx, dy = tx - sx, ty - sy
+    length = math.hypot(dx, dy) or 1.0
+    # Unit perpendicular.
+    px, py = -dy / length, dx / length
+    # Center the fan: edges at indices 0..total-1 map to offsets spread
+    # around zero so the group stays visually centered on the node-to-node
+    # line.
+    spacing = 14.0
+    offset = (idx - (total - 1) / 2.0) * spacing
+    return (px * offset, py * offset)
