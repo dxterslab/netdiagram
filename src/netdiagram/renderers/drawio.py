@@ -159,6 +159,14 @@ class DrawioRenderer:
             target=f"node-{re.link.target.node}",
         )
         geom = etree.SubElement(edge_cell, "mxGeometry", relative="1")
+        # Emit interior waypoints from the routed path, if any.
+        # Path[0] and path[-1] are implicit (source/target endpoints); only
+        # intermediate points become <mxPoint> entries inside <Array as="points">.
+        if len(re.path) > 2:
+            arr = etree.SubElement(geom, "Array")
+            arr.set("as", "points")
+            for point in re.path[1:-1]:
+                etree.SubElement(arr, "mxPoint", x=str(point.x), y=str(point.y))
         geom.set("as", "geometry")
 
         if re.link.source.interface:
