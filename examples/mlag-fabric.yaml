@@ -1,0 +1,132 @@
+version: "1.0"
+metadata:
+  title: "DC Fabric — MLAG Spine-Leaf"
+  type: physical
+  description: "Two MLAG spine switches with 100G peerlink, four dual-homed leaf switches, and two storage nodes (one bonded, one single-homed risk)."
+
+groups:
+  - id: spine-pair
+    label: "MLAG Spine Pair"
+    type: zone
+  - id: leaves
+    label: "Leaf Tier"
+    type: zone
+  - id: storage
+    label: "Storage (check bonding!)"
+    type: zone
+
+nodes:
+  - id: spine1
+    label: "spine-01"
+    type: switch
+    group: spine-pair
+    interfaces:
+      - { id: swp1 }
+      - { id: swp2 }
+      - { id: swp3 }
+      - { id: swp4 }
+      - { id: swp50 }
+      - { id: swp52 }
+      - { id: swp53 }
+      - { id: swp54 }
+
+  - id: spine2
+    label: "spine-02"
+    type: switch
+    group: spine-pair
+    interfaces:
+      - { id: swp1 }
+      - { id: swp2 }
+      - { id: swp3 }
+      - { id: swp4 }
+      - { id: swp50 }
+      - { id: swp52 }
+      - { id: swp53 }
+      - { id: swp54 }
+
+  - id: leaf1
+    label: "leaf-01"
+    type: switch
+    group: leaves
+    interfaces: [{ id: uplink1 }, { id: uplink2 }]
+  - id: leaf2
+    label: "leaf-02"
+    type: switch
+    group: leaves
+    interfaces: [{ id: uplink1 }, { id: uplink2 }]
+  - id: leaf3
+    label: "leaf-03"
+    type: switch
+    group: leaves
+    interfaces: [{ id: uplink1 }, { id: uplink2 }]
+  - id: leaf4
+    label: "leaf-04"
+    type: switch
+    group: leaves
+    interfaces: [{ id: uplink1 }, { id: uplink2 }]
+
+  - id: stor1
+    label: "storage-01"
+    type: server
+    group: storage
+    interfaces: [{ id: nic1 }, { id: nic2 }]
+  - id: stor2
+    label: "storage-02"
+    type: server
+    group: storage
+    interfaces: [{ id: nic1 }, { id: nic2 }]
+
+links:
+  # MLAG peerlinks
+  - source: { node: spine1, interface: swp50 }
+    target: { node: spine2, interface: swp50 }
+    label: "peerlink 100G"
+  - source: { node: spine1, interface: swp52 }
+    target: { node: spine2, interface: swp52 }
+    label: "peerlink 100G"
+
+  # Leaf uplinks (MLAG — each leaf connects to BOTH spines)
+  - source: { node: spine1, interface: swp1 }
+    target: { node: leaf1, interface: uplink1 }
+    label: "bond1 100G"
+  - source: { node: spine2, interface: swp1 }
+    target: { node: leaf1, interface: uplink2 }
+    label: "bond1 100G"
+
+  - source: { node: spine1, interface: swp2 }
+    target: { node: leaf2, interface: uplink1 }
+    label: "bond2 100G"
+  - source: { node: spine2, interface: swp2 }
+    target: { node: leaf2, interface: uplink2 }
+    label: "bond2 100G"
+
+  - source: { node: spine1, interface: swp3 }
+    target: { node: leaf3, interface: uplink1 }
+    label: "bond3 100G"
+  - source: { node: spine2, interface: swp3 }
+    target: { node: leaf3, interface: uplink2 }
+    label: "bond3 100G"
+
+  - source: { node: spine1, interface: swp4 }
+    target: { node: leaf4, interface: uplink1 }
+    label: "bond4 100G"
+  - source: { node: spine2, interface: swp4 }
+    target: { node: leaf4, interface: uplink2 }
+    label: "bond4 100G"
+
+  # Storage — stor1 is properly MLAG-bonded
+  - source: { node: spine1, interface: swp53 }
+    target: { node: stor1, interface: nic1 }
+    label: "bond5 25G"
+  - source: { node: spine2, interface: swp53 }
+    target: { node: stor1, interface: nic2 }
+    label: "bond5 25G"
+
+  # Storage — stor2 is cabled to both but bond NOT configured (risk!)
+  - source: { node: spine1, interface: swp54 }
+    target: { node: stor2, interface: nic1 }
+    label: "25G active"
+  - source: { node: spine2, interface: swp54 }
+    target: { node: stor2, interface: nic2 }
+    label: "25G no bond"
+    style: dashed

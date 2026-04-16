@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="netdiagram">
+  <diagram id="main" name="Small Office Network">
+    <mxGraphModel dx="446" dy="436" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="446" pageHeight="436" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="group-server-room" value="Server Room" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=bottom;fontSize=12;fillColor=#F5F5F5;strokeColor=#9E9E9E;" vertex="1" parent="1">
+          <mxGeometry x="40.00000000000001" y="40.0" width="296.9985" height="228.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="group-dmz" value="DMZ" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=bottom;fontSize=12;fillColor=#FFEBEE;strokeColor=#C62828;" vertex="1" parent="1">
+          <mxGeometry x="55.74850000000001" y="221.83333333333334" width="175.0" height="158.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="node-isp-router" value="ISP Router" style="html=1;whiteSpace=wrap;shape=mscae/router;fillColor=#1B5E9E;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="245.7485" y="336.70833333333337" width="94.0" height="60.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="node-fw1" value="Edge Firewall" style="html=1;whiteSpace=wrap;shape=cisco/firewall;fillColor=#B0343C;fontColor=#FFFFFF;" vertex="1" parent="group-dmz">
+          <mxGeometry x="30.0" y="58.00000000000003" width="115.0" height="70.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="node-core-sw" value="Core Switch" style="html=1;whiteSpace=wrap;shape=mscae/switch;fillColor=#0072C6;fontColor=#FFFFFF;" vertex="1" parent="group-server-room">
+          <mxGeometry x="165.9985" y="138.0" width="101.0" height="60.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="node-web-srv" value="Web Server" style="html=1;whiteSpace=wrap;shape=mscae/server;fillColor=#5C8A3F;fontColor=#FFFFFF;" vertex="1" parent="group-server-room">
+          <mxGeometry x="29.999999999999993" y="98.0" width="94.0" height="60.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="node-db-srv" value="Database" style="html=1;whiteSpace=wrap;shape=mscae/server;fillColor=#5C8A3F;fontColor=#FFFFFF;" vertex="1" parent="group-server-room">
+          <mxGeometry x="144.0" y="58.0" width="80.0" height="60.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="node-ap1" value="WiFi AP" style="html=1;whiteSpace=wrap;shape=mscae/wireless_ap;fillColor=#2C7873;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="326.99850000000004" y="120.70833333333334" width="80.0" height="60.0" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-0" value="WAN uplink" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="node-isp-router" target="node-fw1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-0-src-label" value="lan0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-0">
+          <mxGeometry x="-0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="0.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-0-tgt-label" value="eth0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-0">
+          <mxGeometry x="0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="0.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-1" value="Trunk" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="node-fw1" target="node-core-sw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-1-src-label" value="eth1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-1">
+          <mxGeometry x="-0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="0.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-1-tgt-label" value="gi0/1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-1">
+          <mxGeometry x="0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-30.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="VLAN 10" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="node-core-sw" target="node-web-srv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-2-src-label" value="gi0/2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-2">
+          <mxGeometry x="-0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="-30.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2-tgt-label" value="eth0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-2">
+          <mxGeometry x="0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="0.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="VLAN 20" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="node-core-sw" target="node-db-srv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-3-src-label" value="gi0/3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-3">
+          <mxGeometry x="-0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="20.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3-tgt-label" value="eth0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-3">
+          <mxGeometry x="0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="0.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4" value="VLAN 30" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="node-core-sw" target="node-ap1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-4-src-label" value="gi0/4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-4">
+          <mxGeometry x="-0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="40.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4-tgt-label" value="eth0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="edge-4">
+          <mxGeometry x="0.7" y="0" relative="1" as="geometry">
+            <mxPoint x="0" y="0.0" as="offset"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

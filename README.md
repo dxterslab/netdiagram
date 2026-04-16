@@ -39,4 +39,18 @@ uv run pytest tests/test_foo.py    # run one test file
 uv run ruff check src tests        # lint
 ~~~
 
-See `docs/superpowers/specs/` for the design spec.
+## Documentation
+
+- [CLI Usage Guide](docs/cli-usage.md) — commands, examples, link styles, tips
+- [MCP + LLM Workflow](docs/mcp-llm-workflow.md) — how to use an LLM to build diagrams from raw network data
+- [MCP Integration](docs/mcp-integration.md) — client configuration, tool reference, debugging
+- [Design Spec](docs/superpowers/specs/2026-04-14-network-diagram-design.md) — architecture decisions and rationale
+
+## Examples
+
+Ready-to-render example topologies in `examples/`:
+
+```bash
+uv run netdiagram render examples/small-office.yaml --format drawio --output small-office.drawio
+uv run netdiagram render examples/mlag-fabric.yaml --format d2 --output mlag-fabric.d2
+```
