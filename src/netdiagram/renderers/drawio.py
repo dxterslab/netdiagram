@@ -5,7 +5,8 @@ from __future__ import annotations
 from lxml import etree
 
 from netdiagram.ir.models import LinkStyle, NodeType
-from netdiagram.layout.types import LayoutedDiagram, PositionedNode, RoutedEdge
+from netdiagram.layout.labels import point_along_path
+from netdiagram.layout.types import LayoutedDiagram, Point, PositionedNode, RoutedEdge
 
 _S = "html=1;whiteSpace=wrap;"
 _STYLE_BY_TYPE: dict[NodeType, str] = {
@@ -176,6 +177,9 @@ class DrawioRenderer:
                 label=re.link.source.interface,
                 position=-0.7,
                 cell_id=f"{edge_id}-src-label",
+                label_pos=re.source_label_pos,
+                path=re.path,
+                fraction=0.15,
             )
         if re.link.target.interface:
             self._append_endpoint_label(
@@ -184,6 +188,9 @@ class DrawioRenderer:
                 label=re.link.target.interface,
                 position=0.7,
                 cell_id=f"{edge_id}-tgt-label",
+                label_pos=re.target_label_pos,
+                path=re.path,
+                fraction=0.85,
             )
 
     def _append_endpoint_label(
@@ -193,6 +200,9 @@ class DrawioRenderer:
         label: str,
         position: float,
         cell_id: str,
+        label_pos: Point | None = None,
+        path: list[Point] | None = None,
+        fraction: float = 0.5,
     ) -> None:
         cell = etree.SubElement(
             root,
@@ -204,8 +214,17 @@ class DrawioRenderer:
             connectable="0",
             parent=parent_id,
         )
-        geom = etree.SubElement(cell, "mxGeometry", x=str(position), y="0", relative="1")
-        etree.SubElement(geom, "mxPoint").set("as", "offset")
+        # Compute perpendicular offset from the computed absolute label position.
+        y_offset = 0.0
+        if label_pos is not None and path and len(path) >= 2:
+            default_pos = point_along_path(path, fraction)
+            y_offset = label_pos.y - default_pos.y
+
+        geom = etree.SubElement(
+            cell, "mxGeometry", x=str(position), y="0", relative="1"
+        )
+        offset_pt = etree.SubElement(geom, "mxPoint", x="0", y=str(y_offset))
+        offset_pt.set("as", "offset")
         geom.set("as", "geometry")
 
 
