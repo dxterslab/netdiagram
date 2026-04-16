@@ -1,0 +1,80 @@
+version: "1.0"
+metadata:
+  title: "Small Office Network"
+  type: physical
+
+groups:
+  - id: server-room
+    label: "Server Room"
+    type: zone
+  - id: dmz
+    label: "DMZ"
+    type: dmz
+
+nodes:
+  - id: isp-router
+    label: "ISP Router"
+    type: router
+    interfaces:
+      - { id: wan0, state: up }
+      - { id: lan0, state: up }
+
+  - id: fw1
+    label: "Edge Firewall"
+    type: firewall
+    group: dmz
+    interfaces:
+      - { id: eth0, state: up }
+      - { id: eth1, state: up }
+      - { id: eth2, state: up }
+
+  - id: core-sw
+    label: "Core Switch"
+    type: switch
+    group: server-room
+    interfaces:
+      - { id: gi0/1, state: up }
+      - { id: gi0/2, state: up }
+      - { id: gi0/3, state: up }
+      - { id: gi0/4, state: up }
+
+  - id: web-srv
+    label: "Web Server"
+    type: server
+    group: server-room
+    interfaces:
+      - { id: eth0, state: up }
+
+  - id: db-srv
+    label: "Database"
+    type: server
+    group: server-room
+    interfaces:
+      - { id: eth0, state: up }
+
+  - id: ap1
+    label: "WiFi AP"
+    type: access_point
+    interfaces:
+      - { id: eth0, state: up }
+
+links:
+  - source: { node: isp-router, interface: lan0 }
+    target: { node: fw1, interface: eth0 }
+    label: "WAN uplink"
+
+  - source: { node: fw1, interface: eth1 }
+    target: { node: core-sw, interface: gi0/1 }
+    label: "Trunk"
+
+  - source: { node: core-sw, interface: gi0/2 }
+    target: { node: web-srv, interface: eth0 }
+    label: "VLAN 10"
+
+  - source: { node: core-sw, interface: gi0/3 }
+    target: { node: db-srv, interface: eth0 }
+    label: "VLAN 20"
+
+  - source: { node: core-sw, interface: gi0/4 }
+    target: { node: ap1, interface: eth0 }
+    label: "VLAN 30"

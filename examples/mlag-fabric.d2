@@ -1,0 +1,119 @@
+# DC Fabric — MLAG Spine-Leaf
+
+"spine-pair": {
+  label: "MLAG Spine Pair"
+  label.near: bottom-center
+  "spine1": {
+    shape: rectangle
+    label: "spine-01"
+  }
+  "spine2": {
+    shape: rectangle
+    label: "spine-02"
+  }
+}
+
+"leaves": {
+  label: "Leaf Tier"
+  label.near: bottom-center
+  "leaf1": {
+    shape: rectangle
+    label: "leaf-01"
+  }
+  "leaf2": {
+    shape: rectangle
+    label: "leaf-02"
+  }
+  "leaf3": {
+    shape: rectangle
+    label: "leaf-03"
+  }
+  "leaf4": {
+    shape: rectangle
+    label: "leaf-04"
+  }
+}
+
+"storage": {
+  label: "Storage (check bonding!)"
+  label.near: bottom-center
+  "stor1": {
+    shape: rectangle
+    label: "storage-01"
+  }
+  "stor2": {
+    shape: rectangle
+    label: "storage-02"
+  }
+}
+
+"spine-pair"."spine1" -> "spine-pair"."spine2": "peerlink 100G" {
+  source-arrowhead.label: "swp50"
+  target-arrowhead.label: "swp50"
+}
+
+"spine-pair"."spine1" -> "spine-pair"."spine2": "peerlink 100G" {
+  source-arrowhead.label: "swp52"
+  target-arrowhead.label: "swp52"
+}
+
+"spine-pair"."spine1" -> "leaves"."leaf1": "bond1 100G" {
+  source-arrowhead.label: "swp1"
+  target-arrowhead.label: "uplink1"
+}
+
+"spine-pair"."spine2" -> "leaves"."leaf1": "bond1 100G" {
+  source-arrowhead.label: "swp1"
+  target-arrowhead.label: "uplink2"
+}
+
+"spine-pair"."spine1" -> "leaves"."leaf2": "bond2 100G" {
+  source-arrowhead.label: "swp2"
+  target-arrowhead.label: "uplink1"
+}
+
+"spine-pair"."spine2" -> "leaves"."leaf2": "bond2 100G" {
+  source-arrowhead.label: "swp2"
+  target-arrowhead.label: "uplink2"
+}
+
+"spine-pair"."spine1" -> "leaves"."leaf3": "bond3 100G" {
+  source-arrowhead.label: "swp3"
+  target-arrowhead.label: "uplink1"
+}
+
+"spine-pair"."spine2" -> "leaves"."leaf3": "bond3 100G" {
+  source-arrowhead.label: "swp3"
+  target-arrowhead.label: "uplink2"
+}
+
+"spine-pair"."spine1" -> "leaves"."leaf4": "bond4 100G" {
+  source-arrowhead.label: "swp4"
+  target-arrowhead.label: "uplink1"
+}
+
+"spine-pair"."spine2" -> "leaves"."leaf4": "bond4 100G" {
+  source-arrowhead.label: "swp4"
+  target-arrowhead.label: "uplink2"
+}
+
+"spine-pair"."spine1" -> "storage"."stor1": "bond5 25G" {
+  source-arrowhead.label: "swp53"
+  target-arrowhead.label: "nic1"
+}
+
+"spine-pair"."spine2" -> "storage"."stor1": "bond5 25G" {
+  source-arrowhead.label: "swp53"
+  target-arrowhead.label: "nic2"
+}
+
+"spine-pair"."spine1" -> "storage"."stor2": "25G active" {
+  source-arrowhead.label: "swp54"
+  target-arrowhead.label: "nic1"
+}
+
+"spine-pair"."spine2" -> "storage"."stor2": "25G no bond" {
+  style.stroke-dash: 5
+  source-arrowhead.label: "swp54"
+  target-arrowhead.label: "nic2"
+}

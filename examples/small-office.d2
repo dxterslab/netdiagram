@@ -1,0 +1,62 @@
+# Small Office Network
+
+"server-room": {
+  label: "Server Room"
+  label.near: bottom-center
+  "core-sw": {
+    shape: rectangle
+    label: "Core Switch"
+  }
+  "web-srv": {
+    shape: rectangle
+    label: "Web Server"
+  }
+  "db-srv": {
+    shape: rectangle
+    label: "Database"
+  }
+}
+
+"dmz": {
+  label: "DMZ"
+  label.near: bottom-center
+  "fw1": {
+    shape: diamond
+    label: "Edge Firewall"
+  }
+}
+
+"isp-router": {
+  shape: hexagon
+  label: "ISP Router"
+}
+
+"ap1": {
+  shape: oval
+  label: "WiFi AP"
+}
+
+"isp-router" -> "dmz"."fw1": "WAN uplink" {
+  source-arrowhead.label: "lan0"
+  target-arrowhead.label: "eth0"
+}
+
+"dmz"."fw1" -> "server-room"."core-sw": "Trunk" {
+  source-arrowhead.label: "eth1"
+  target-arrowhead.label: "gi0/1"
+}
+
+"server-room"."core-sw" -> "server-room"."web-srv": "VLAN 10" {
+  source-arrowhead.label: "gi0/2"
+  target-arrowhead.label: "eth0"
+}
+
+"server-room"."core-sw" -> "server-room"."db-srv": "VLAN 20" {
+  source-arrowhead.label: "gi0/3"
+  target-arrowhead.label: "eth0"
+}
+
+"server-room"."core-sw" -> "ap1": "VLAN 30" {
+  source-arrowhead.label: "gi0/4"
+  target-arrowhead.label: "eth0"
+}
