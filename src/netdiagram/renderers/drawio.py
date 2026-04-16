@@ -32,7 +32,7 @@ _EDGE_STYLE_BY_LINK_STYLE: dict[LinkStyle, str] = {
     "dotted": "endArrow=none;html=1;rounded=0;dashed=1;dashPattern=1 4;",
 }
 
-_GS = "rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontSize=12;"
+_GS = "rounded=1;whiteSpace=wrap;html=1;verticalAlign=bottom;fontSize=12;"
 _GROUP_STYLE_BY_TYPE: dict[str, str] = {
     "subnet": _GS + "fillColor=#F5F5F5;strokeColor=#9E9E9E;",
     "vlan": _GS + "fillColor=#FFF8E1;strokeColor=#F9A825;",

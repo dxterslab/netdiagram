@@ -80,6 +80,7 @@ class D2Renderer:
         lines: list[str] = [
             f'{pad}"{group.id}": {{',
             f'{inner_pad}label: "{group.label}"',
+            f"{inner_pad}label.near: bottom-center",
         ]
         # Nested groups first, then member nodes.
         for child_group in children_of.get(group.id, []):
