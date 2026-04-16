@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from lxml import etree
 
-from netdiagram.ir.models import LinkStyle, NodeType
-from netdiagram.layout.labels import point_along_path
-from netdiagram.layout.types import LayoutedDiagram, Point, PositionedNode, RoutedEdge
+from netdiagram.ir.models import Link, LinkStyle, NodeType
+from netdiagram.layout.types import LayoutedDiagram, PositionedNode, RoutedEdge
 
 _S = "html=1;whiteSpace=wrap;"
 _STYLE_BY_TYPE: dict[NodeType, str] = {
@@ -148,11 +147,17 @@ class DrawioRenderer:
     def _append_edge(self, root: etree._Element, re: RoutedEdge, edge_index: int) -> None:
         edge_id = f"edge-{edge_index}"
         style = _EDGE_STYLE_BY_LINK_STYLE[re.link.style]
+
+        # Build a single consolidated label from interface names + link label.
+        # This replaces the old 3-label approach (edge value + 2 arrowhead labels)
+        # which caused visual clutter with parallel MLAG bonds.
+        edge_label = _consolidated_edge_label(re.link)
+
         edge_cell = etree.SubElement(
             root,
             "mxCell",
             id=edge_id,
-            value=re.link.label or "",
+            value=edge_label,
             style=style,
             edge="1",
             parent="1",
@@ -161,8 +166,6 @@ class DrawioRenderer:
         )
         geom = etree.SubElement(edge_cell, "mxGeometry", relative="1")
         # Emit interior waypoints from the routed path, if any.
-        # Path[0] and path[-1] are implicit (source/target endpoints); only
-        # intermediate points become <mxPoint> entries inside <Array as="points">.
         if len(re.path) > 2:
             arr = etree.SubElement(geom, "Array")
             arr.set("as", "points")
@@ -170,62 +173,31 @@ class DrawioRenderer:
                 etree.SubElement(arr, "mxPoint", x=str(point.x), y=str(point.y))
         geom.set("as", "geometry")
 
-        if re.link.source.interface:
-            self._append_endpoint_label(
-                root,
-                parent_id=edge_id,
-                label=re.link.source.interface,
-                position=-0.7,
-                cell_id=f"{edge_id}-src-label",
-                label_pos=re.source_label_pos,
-                path=re.path,
-                fraction=0.15,
-            )
-        if re.link.target.interface:
-            self._append_endpoint_label(
-                root,
-                parent_id=edge_id,
-                label=re.link.target.interface,
-                position=0.7,
-                cell_id=f"{edge_id}-tgt-label",
-                label_pos=re.target_label_pos,
-                path=re.path,
-                fraction=0.85,
-            )
+def _consolidated_edge_label(link: Link) -> str:
+    """Build a single edge label from interface names + link label.
 
-    def _append_endpoint_label(
-        self,
-        root: etree._Element,
-        parent_id: str,
-        label: str,
-        position: float,
-        cell_id: str,
-        label_pos: Point | None = None,
-        path: list[Point] | None = None,
-        fraction: float = 0.5,
-    ) -> None:
-        cell = etree.SubElement(
-            root,
-            "mxCell",
-            id=cell_id,
-            value=label,
-            style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];",
-            vertex="1",
-            connectable="0",
-            parent=parent_id,
-        )
-        # Compute perpendicular offset from the computed absolute label position.
-        y_offset = 0.0
-        if label_pos is not None and path and len(path) >= 2:
-            default_pos = point_along_path(path, fraction)
-            y_offset = label_pos.y - default_pos.y
+    Replaces the old 3-label approach (edge value + 2 arrowhead child cells).
+    Each parallel edge gets a unique label because interface names differ.
+    """
+    src = link.source.interface
+    tgt = link.target.interface
+    lbl = link.label
 
-        geom = etree.SubElement(
-            cell, "mxGeometry", x=str(position), y="0", relative="1"
-        )
-        offset_pt = etree.SubElement(geom, "mxPoint", x="0", y=str(y_offset))
-        offset_pt.set("as", "offset")
-        geom.set("as", "geometry")
+    if src and tgt and lbl:
+        return f"{src} — {lbl} — {tgt}"
+    if src and tgt:
+        return f"{src} ↔ {tgt}"
+    if src and lbl:
+        return f"{src} — {lbl}"
+    if tgt and lbl:
+        return f"{lbl} — {tgt}"
+    if lbl:
+        return lbl
+    if src:
+        return src
+    if tgt:
+        return tgt
+    return ""
 
 
 def _order_groups(diagram: LayoutedDiagram):

@@ -146,7 +146,7 @@ def test_dotted_style_sets_smaller_dash():
     assert "style.stroke-dash: 2" in out
 
 
-def test_interface_labels_become_arrowhead_labels():
+def test_interface_labels_consolidated_into_edge_label():
     d = Diagram(
         metadata=Metadata(title="T", type="physical"),
         nodes=[
@@ -171,9 +171,10 @@ def test_interface_labels_become_arrowhead_labels():
         ],
     )
     out = _render(d)
-    # D2 uses source-arrowhead.label and target-arrowhead.label for port annotations
-    assert 'source-arrowhead.label: "gi0/1"' in out
-    assert 'target-arrowhead.label: "gi0/2"' in out
+    # Interface names are consolidated into the edge label (no separate arrowhead labels)
+    assert "gi0/1" in out
+    assert "gi0/2" in out
+    assert '"a" -> "b": "gi0/1' in out  # both in a single label string
 
 
 def test_group_containing_nodes_becomes_nested_container():

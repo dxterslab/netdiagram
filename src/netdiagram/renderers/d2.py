@@ -106,8 +106,13 @@ class D2Renderer:
         src = path_of_node[link.source.node]
         tgt = path_of_node[link.target.node]
         head = f"{src} -> {tgt}"
-        if link.label:
-            head = f'{head}: "{link.label}"'
+
+        # Build a single consolidated label that includes interface names.
+        # This avoids D2's edge-dedup bug (same src+tgt+label = merged edge)
+        # and reduces visual clutter vs. separate arrowhead labels.
+        edge_label = _consolidated_label(link)
+        if edge_label:
+            head = f'{head}: "{edge_label}"'
 
         body: list[str] = []
         if link.style == "dashed":
@@ -115,14 +120,39 @@ class D2Renderer:
         elif link.style == "dotted":
             body.append("  style.stroke-dash: 2")
 
-        if link.source.interface:
-            body.append(f'  source-arrowhead.label: "{link.source.interface}"')
-        if link.target.interface:
-            body.append(f'  target-arrowhead.label: "{link.target.interface}"')
-
         if not body:
             return [head]
         return [f"{head} {{", *body, "}"]
+
+
+def _consolidated_label(link: Link) -> str:
+    """Build a single edge label from interface names + link label.
+
+    Examples:
+        interfaces + label:  "swp50 — peerlink 100G — swp50"
+        interfaces only:     "swp9 ↔ vmnic0"
+        label only:          "uplink"
+        neither:             ""
+    """
+    src = link.source.interface
+    tgt = link.target.interface
+    lbl = link.label
+
+    if src and tgt and lbl:
+        return f"{src} — {lbl} — {tgt}"
+    if src and tgt:
+        return f"{src} ↔ {tgt}"
+    if src and lbl:
+        return f"{src} — {lbl}"
+    if tgt and lbl:
+        return f"{lbl} — {tgt}"
+    if lbl:
+        return lbl
+    if src:
+        return src
+    if tgt:
+        return tgt
+    return ""
 
 
 def _node_paths(ir: Diagram) -> dict[str, str]:
