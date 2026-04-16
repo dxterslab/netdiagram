@@ -52,6 +52,11 @@ def layout_diagram(diagram: Diagram) -> LayoutedDiagram:
 
     positioned = resolve_overlaps(positioned, padding=_NODE_PADDING)
 
+    # Align nodes within the same group to a common y so they sit side-by-side.
+    _align_group_members(diagram, positioned)
+    # Re-resolve overlaps after alignment (snapping to same y can create horizontal collisions).
+    positioned = resolve_overlaps(positioned, padding=_NODE_PADDING)
+
     groups = _compute_group_bounds(diagram, positioned)
 
     # Normalize both nodes and groups together so nothing starts above/left of margin.
@@ -99,6 +104,20 @@ def _normalize_all(
     for pg in groups:
         pg.x += dx
         pg.y += dy
+
+
+def _align_group_members(diagram: Diagram, positioned: list[PositionedNode]) -> None:
+    """Snap nodes in the same group to a shared y-coordinate so they form a
+    horizontal row inside their container. Uses the average y of the group's
+    members as the target row."""
+    by_id = {pn.node.id: pn for pn in positioned}
+    for group in diagram.groups:
+        members = [by_id[n.id] for n in diagram.nodes if n.group == group.id]
+        if len(members) < 2:
+            continue
+        avg_y = sum(pn.y for pn in members) / len(members)
+        for pn in members:
+            pn.y = avg_y
 
 
 def _compute_group_bounds(
@@ -213,7 +232,8 @@ def _fan_out_offset(
     sx: float, sy: float, tx: float, ty: float, idx: int, total: int
 ) -> tuple[float, float]:
     """Return a perpendicular offset so the i-th of `total` parallel edges
-    sits on its own line. Spacing is 14px between adjacent edges."""
+    sits on its own line. Spacing is 28px between adjacent edges — wide enough
+    for interface labels to sit between parallel bond members."""
     if total <= 1:
         return (0.0, 0.0)
 
@@ -224,6 +244,6 @@ def _fan_out_offset(
     # Center the fan: edges at indices 0..total-1 map to offsets spread
     # around zero so the group stays visually centered on the node-to-node
     # line.
-    spacing = 14.0
+    spacing = 28.0
     offset = (idx - (total - 1) / 2.0) * spacing
     return (px * offset, py * offset)
