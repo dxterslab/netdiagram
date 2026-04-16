@@ -7,7 +7,7 @@ Pipeline stages:
 4. Compute node dimensions.
 5. Resolve node overlaps.
 6. Normalize coordinates so the canvas origin is (0, 0) with margin.
-7. Route edges as straight line segments between node centers (Phase 1).
+7. Route edges orthogonally around node obstacles via A*.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from netdiagram.ir.models import Diagram
 from netdiagram.layout.dimensions import compute_node_size
 from netdiagram.layout.overlap import resolve_overlaps
 from netdiagram.layout.placement import compute_initial_positions
+from netdiagram.layout.routing import Obstacle, ObstacleGrid, find_path, simplify_path
 from netdiagram.layout.topology import classify_topology
 from netdiagram.layout.types import (
     LayoutedDiagram,
@@ -139,12 +140,22 @@ def _canvas_bounds_with_groups(
 
 
 def _route_edges(diagram: Diagram, laid: LayoutedDiagram) -> list[RoutedEdge]:
-    """Phase 2 routing: straight lines between endpoints, but fan parallel
-    edges out perpendicular to the connecting vector so they don't overlap."""
+    """Route each edge orthogonally around node obstacles. Parallel edges
+    fan out at endpoints. Falls back to a straight line if A* can't find
+    a path (should not happen for well-formed diagrams)."""
     by_id = {pn.node.id: pn for pn in laid.nodes}
 
-    # Group links by unordered node pair so peer peerlinks (a<->b and b<->a)
-    # fan out together.
+    # Build the obstacle grid from every positioned node.
+    grid = ObstacleGrid(
+        width=laid.canvas_width,
+        height=laid.canvas_height,
+        cell_size=10.0,
+        padding=15.0,
+    )
+    for pn in laid.nodes:
+        grid.add_obstacle(Obstacle(pn.x, pn.y, pn.width, pn.height))
+
+    # Pre-count parallel edges per pair for fan-out.
     pair_counts: dict[tuple[str, str], int] = {}
     for link in diagram.links:
         pair = tuple(sorted((link.source.node, link.target.node)))
@@ -164,9 +175,18 @@ def _route_edges(diagram: Diagram, laid: LayoutedDiagram) -> list[RoutedEdge]:
         tx, ty = t.x + t.width / 2, t.y + t.height / 2
 
         dx_off, dy_off = _fan_out_offset(sx, sy, tx, ty, idx, total)
-        start = Point(sx + dx_off, sy + dy_off)
-        end = Point(tx + dx_off, ty + dy_off)
-        out.append(RoutedEdge(link=link, path=[start, end]))
+        start_pt = (sx + dx_off, sy + dy_off)
+        end_pt = (tx + dx_off, ty + dy_off)
+
+        raw = find_path(grid, start_pt, end_pt)
+        if raw is None:
+            # Fallback: straight line with fan-out offset.
+            path_points = [Point(*start_pt), Point(*end_pt)]
+        else:
+            simplified = simplify_path(raw)
+            path_points = [Point(x, y) for x, y in simplified]
+
+        out.append(RoutedEdge(link=link, path=path_points))
     return out
 
 

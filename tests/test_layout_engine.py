@@ -114,3 +114,33 @@ def test_parallel_edges_have_distinct_endpoints():
     end_a = (laid.edges[0].path[-1].x, laid.edges[0].path[-1].y)
     end_b = (laid.edges[1].path[-1].x, laid.edges[1].path[-1].y)
     assert end_a != end_b, "parallel edges must fan out at the target endpoint"
+
+
+def test_edge_routes_around_intermediate_node():
+    """Place three nodes in a line. The edge from left to right must route
+    around the center node rather than straight through it."""
+    d = Diagram(
+        metadata=Metadata(title="T", type="physical"),
+        nodes=[
+            Node(id="left", label="left", type="router"),
+            Node(id="middle", label="middle", type="router"),
+            Node(id="right", label="right", type="router"),
+        ],
+        links=[
+            # Only link is left<->right; the center node is in the way but not
+            # connected.
+            Link(source=LinkEndpoint(node="left"),
+                 target=LinkEndpoint(node="right")),
+        ],
+    )
+    laid = layout_diagram(d)
+    # Path must exist and must not pierce the middle node's bounding box.
+    edge = laid.edges[0]
+    assert len(edge.path) >= 2
+    middle = next(pn for pn in laid.nodes if pn.node.id == "middle")
+    for p in edge.path:
+        inside_x = middle.x < p.x < middle.x + middle.width
+        inside_y = middle.y < p.y < middle.y + middle.height
+        assert not (inside_x and inside_y), (
+            f"edge path point ({p.x}, {p.y}) pierces 'middle' node"
+        )
