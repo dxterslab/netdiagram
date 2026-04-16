@@ -87,3 +87,30 @@ def test_layout_includes_positioned_groups():
         assert pn.y >= pg.y
         assert pn.x + pn.width <= pg.x + pg.width
         assert pn.y + pn.height <= pg.y + pg.height
+
+
+def test_parallel_edges_have_distinct_endpoints():
+    """Two links between the same pair of nodes should not produce identical paths."""
+    d = Diagram(
+        metadata=Metadata(title="T", type="physical"),
+        nodes=[
+            Node(id="a", label="a", type="router",
+                 interfaces=[Interface(id="e0"), Interface(id="e1")]),
+            Node(id="b", label="b", type="router",
+                 interfaces=[Interface(id="e0"), Interface(id="e1")]),
+        ],
+        links=[
+            Link(source=LinkEndpoint(node="a", interface="e0"),
+                 target=LinkEndpoint(node="b", interface="e0")),
+            Link(source=LinkEndpoint(node="a", interface="e1"),
+                 target=LinkEndpoint(node="b", interface="e1")),
+        ],
+    )
+    laid = layout_diagram(d)
+    assert len(laid.edges) == 2
+    start_a = (laid.edges[0].path[0].x, laid.edges[0].path[0].y)
+    start_b = (laid.edges[1].path[0].x, laid.edges[1].path[0].y)
+    assert start_a != start_b, "parallel edges must fan out at the source endpoint"
+    end_a = (laid.edges[0].path[-1].x, laid.edges[0].path[-1].y)
+    end_b = (laid.edges[1].path[-1].x, laid.edges[1].path[-1].y)
+    assert end_a != end_b, "parallel edges must fan out at the target endpoint"
