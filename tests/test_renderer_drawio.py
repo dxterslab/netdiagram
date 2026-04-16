@@ -87,10 +87,12 @@ def test_each_link_becomes_edge_cell():
     e = edges[0]
     assert e.get("source") == "node-a"
     assert e.get("target") == "node-b"
-    assert e.get("value") == "uplink"
+    # Edge value now consolidates interface names + link label
+    assert "uplink" in e.get("value")
+    assert "e0" in e.get("value")
 
 
-def test_edge_has_interface_labels_as_child_cells():
+def test_edge_consolidates_interface_labels_into_value():
     d = Diagram(
         metadata=Metadata(title="T", type="physical"),
         nodes=[
@@ -106,12 +108,14 @@ def test_edge_has_interface_labels_as_child_cells():
     )
     root = _parse(_render(d))
     edge = next(c for c in root.findall(".//mxCell") if c.get("edge") == "1")
+    value = edge.get("value")
+    # Both interface names should appear in the consolidated edge label
+    assert "gi0/1" in value
+    assert "gi0/2" in value
+    # No separate arrowhead-label child cells
     edge_id = edge.get("id")
-    # Interface labels are child cells whose parent is the edge
     label_cells = [c for c in root.findall(".//mxCell") if c.get("parent") == edge_id]
-    values = {c.get("value") for c in label_cells}
-    assert "gi0/1" in values
-    assert "gi0/2" in values
+    assert len(label_cells) == 0
 
 
 def test_edge_style_reflects_link_style():
@@ -197,17 +201,10 @@ def test_routed_edge_with_explicit_waypoints_emits_mxpoint_elements(monkeypatch)
     assert ys == [70.0, 150.0]
 
 
-def test_label_uses_computed_position_when_set():
-    """When source_label_pos is set on a RoutedEdge, the renderer should
-    emit the label with the computed y offset instead of the default y=0."""
-    from netdiagram.layout.types import (
-        LayoutedDiagram,
-        Point,
-        PositionedNode,
-        RoutedEdge,
-    )
-
-    diagram = Diagram(
+def test_edge_with_interfaces_and_label_consolidates_all():
+    """When an edge has source interface, target interface, AND a link label,
+    all three appear in the single consolidated edge value."""
+    d = Diagram(
         metadata=Metadata(title="T", type="physical"),
         nodes=[
             Node(id="a", label="a", type="router",
@@ -219,42 +216,13 @@ def test_label_uses_computed_position_when_set():
             Link(
                 source=LinkEndpoint(node="a", interface="gi0/1"),
                 target=LinkEndpoint(node="b", interface="gi0/2"),
+                label="uplink",
             )
         ],
     )
-    pn_a = PositionedNode(node=diagram.nodes[0], x=40, y=40, width=100, height=60)
-    pn_b = PositionedNode(node=diagram.nodes[1], x=400, y=40, width=100, height=60)
-    edge = RoutedEdge(
-        link=diagram.links[0],
-        path=[Point(90, 70), Point(450, 70)],
-        source_label_pos=Point(90, 50),   # shifted up from default (y=70)
-        target_label_pos=Point(450, 90),  # shifted down from default (y=70)
-    )
-    laid = LayoutedDiagram(
-        diagram=diagram,
-        nodes=[pn_a, pn_b],
-        edges=[edge],
-        canvas_width=600,
-        canvas_height=200,
-    )
-    xml = DrawioRenderer().render(laid)
-    root = _parse(xml)
-
-    # Find label cells parented to the edge
-    edge_cell = next(c for c in root.findall(".//mxCell") if c.get("edge") == "1")
-    edge_id = edge_cell.get("id")
-    label_cells = [c for c in root.findall(".//mxCell") if c.get("parent") == edge_id]
-    src_label = next(c for c in label_cells if c.get("value") == "gi0/1")
-    tgt_label = next(c for c in label_cells if c.get("value") == "gi0/2")
-
-    # The offset mxPoint should have non-zero y reflecting the computed shift
-    src_offset = src_label.find("mxGeometry/mxPoint")
-    tgt_offset = tgt_label.find("mxGeometry/mxPoint")
-    assert src_offset is not None
-    assert tgt_offset is not None
-    src_offset_y = float(src_offset.get("y", "0"))
-    tgt_offset_y = float(tgt_offset.get("y", "0"))
-    # Source was shifted up (y=50 vs default ~70), so offset.y should be negative
-    assert src_offset_y < 0, f"source label should be shifted up, got offset y={src_offset_y}"
-    # Target was shifted down (y=90 vs default ~70), so offset.y should be positive
-    assert tgt_offset_y > 0, f"target label should be shifted down, got offset y={tgt_offset_y}"
+    root = _parse(_render(d))
+    edge = next(c for c in root.findall(".//mxCell") if c.get("edge") == "1")
+    value = edge.get("value")
+    assert "gi0/1" in value
+    assert "uplink" in value
+    assert "gi0/2" in value
